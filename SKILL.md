@@ -68,6 +68,27 @@ When a new batch arrives in `inbox.jsonl`:
   ```
 - The page polls `history.json`, sees the new batch, auto-reloads (scroll position preserved), and offers the user a walkthrough of the changes. The "processing…" banner clears automatically when any `in_response_to` matches a submitted comment id.
 
+### Comment types
+
+Each inbox comment carries a `type` field:
+
+- **`selection`** — user highlighted a span of text. Payload: `quote` (the selected text), `anchor` (the enclosing element's info), `comment` (the user's note).
+- **`elements`** — user clicked one or more elements in element-selection mode. Payload: `elements[]` (anchor info for each), `comment`.
+- **`general`** — page-level comment not tied to a region. Payload: `comment` only.
+- **`text-edit`** — user double-clicked an element and edited the text inline (see below). Payload: `elements[]` (single-item; the edited element), `original_text` / `new_text` (innerText), `original_html` / `new_html` (innerHTML), `original_outer_html` / `new_outer_html` (outerHTML; needed for style-only edits since style attrs live on the element tag itself, not in innerHTML), and optional `comment` (their note about the edit).
+
+### Handling `text-edit` comments
+
+The user has already made the edit they want — your job is to apply it to the file and let them see it stick. The visual change is showing in their browser until the page reloads.
+
+1. Locate the element in the HTML using the anchor info (`elements[0].cf_id` / `selector` / `text_snippet`).
+2. Apply the change. If only the visible text differs (most common case), do a straight text swap in the file: replace `original_text` with `new_text` in that element's content. If `new_html` differs from `original_html` in structure (the user added/removed `<b>`, `<i>`, `<br>` via the toolbar), use `new_html` as your reference for inner content. If `new_outer_html` differs from `original_outer_html` in attributes (the user used the style panel to set font-family, color, background, border, or border-radius), update the element's `style="…"` attribute in the file to match `new_outer_html`. A single text-edit may involve text + HTML + style changes at once.
+3. **Quietly fix obvious spelling AND grammar errors in `new_text` before writing it.** The user types in the browser without aggressive spell/grammar check and prefers these fixed silently rather than mirrored into the file. Fix: typos, missing/extra articles ("with restaurant" → "with a restaurant"), plural/tense agreement, terminal punctuation, missing possessive apostrophes, whitespace artifacts (`&nbsp;`, double spaces), Oxford commas in new 3+ item lists. Do NOT touch: wording, voice, register (incl. intentional informalisms like "fam"), em-dashes, sentence fragments used rhetorically, capitalization, or substantive copy. If unsure, leave it. Note any QC fixes in the history `description` so the diff is traceable.
+4. Add a `data-cf-change="ch-<slug>"` anchor to the element (or a wrapper) just like any other change.
+5. Record a history entry where the `title` summarizes the edit and the `description` notes both the old and new text (helps you reconstruct intent later if needed).
+
+If the user added a note in `comment`, treat it as additional intent — they may want you to also adjust adjacent prose for consistency, fix Oxford commas in a list they just expanded, etc.
+
 ## On startup in a directory that already has feedback
 
 If you find `<dir>/feedback/inbox.jsonl` and `<dir>/feedback/history.json` and the skill has been invoked in this session:
