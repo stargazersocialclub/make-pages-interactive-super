@@ -1070,22 +1070,33 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 1px solid var(--cf-line-gold);
-  color: var(--cf-gold);
+  border: 1px solid var(--cf-gold-deep);
+  background: linear-gradient(180deg, var(--cf-gold), var(--cf-gold-deep));
+  color: #1a120a;
   padding: 0;
   line-height: 1;
   margin-right: 4px;
+  box-shadow: 0 2px 6px rgba(199, 162, 78, 0.25);
 }
-.cf-help-btn:hover { color: var(--cf-gold); background: var(--cf-gold-tint); }
+.cf-help-btn:hover {
+  color: #1a120a;
+  filter: brightness(1.06);
+  box-shadow: 0 4px 10px rgba(230, 203, 133, 0.35);
+}
 .cf-edit-toolbar .cf-edit-help-btn {
   font-weight: 700;
-  color: var(--cf-gold);
-  border-color: var(--cf-line-gold);
+  background: linear-gradient(180deg, var(--cf-gold), var(--cf-gold-deep));
+  color: #1a120a;
+  border-color: var(--cf-gold-deep);
+  box-shadow: 0 2px 6px rgba(199, 162, 78, 0.25);
 }
 .cf-edit-toolbar .cf-edit-help-btn:hover {
-  color: var(--cf-gold);
-  border-color: var(--cf-gold);
-  background: var(--cf-gold-tint);
+  color: #1a120a;
+  background: linear-gradient(180deg, var(--cf-gold), var(--cf-gold-deep));
+  border-color: var(--cf-gold-deep);
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(230, 203, 133, 0.35);
 }
 
 .cf-help {
