@@ -1078,6 +1078,31 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   background: rgba(255, 255, 255, 0.16);
 }
 
+/* ---------------- Grid overlay + grid-snap toggles ---------------- */
+.cf-grid-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+  z-index: 2147483638;     /* below pill (…40), above page */
+  background-image:
+    linear-gradient(to right, rgba(230, 203, 133, 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(230, 203, 133, 0.10) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+body.cf-grid-on .cf-grid-overlay { display: block; }
+.cf-grid-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.cf-grid-actions .cf-btn { flex: 1; padding: 6px 10px; }
+.cf-grid-actions .cf-btn.cf-active {
+  background: var(--cf-gold-tint);
+  color: var(--cf-gold);
+  border-color: var(--cf-gold);
+}
+
 /* ---------------- Quick guide overlay (? in panel header) ---------------- */
 .cf-help-btn {
   font-size: 16px;
@@ -1104,6 +1129,9 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   color: #1a120a;
   border-color: var(--cf-gold-deep);
   box-shadow: 0 2px 6px rgba(199, 162, 78, 0.25);
+  margin-left: auto;          /* push to the right end of row 2 */
+  min-width: 26px;
+  padding: 0 8px;
 }
 .cf-edit-toolbar .cf-edit-help-btn:hover {
   color: #1a120a;
