@@ -1063,6 +1063,125 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   background: rgba(255, 255, 255, 0.16);
 }
 
+/* ---------------- Quick guide overlay (? in panel header) ---------------- */
+.cf-help-btn {
+  font-size: 16px;
+  font-weight: 700;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--cf-line-gold);
+  color: var(--cf-gold);
+  padding: 0;
+  line-height: 1;
+  margin-right: 4px;
+}
+.cf-help-btn:hover { color: var(--cf-gold); background: var(--cf-gold-tint); }
+.cf-edit-toolbar .cf-edit-help-btn {
+  font-weight: 700;
+  color: var(--cf-gold);
+  border-color: var(--cf-line-gold);
+}
+.cf-edit-toolbar .cf-edit-help-btn:hover {
+  color: var(--cf-gold);
+  border-color: var(--cf-gold);
+  background: var(--cf-gold-tint);
+}
+
+.cf-help {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2147483646;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.cf-help.cf-visible { display: flex; }
+.cf-help-inner {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 64px);
+  background: var(--cf-surf-mid);
+  color: var(--cf-text);
+  border: 2px solid var(--cf-gold-deep);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 4px rgba(199, 162, 78, 0.18),
+    0 22px 64px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cf-help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cf-line);
+}
+.cf-help-header strong {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--cf-gold);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.cf-help-body {
+  padding: 14px 22px 22px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.cf-help-body section { margin-top: 16px; }
+.cf-help-body section:first-of-type { margin-top: 4px; }
+.cf-help-body h4 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cf-gold);
+  font-weight: 600;
+}
+.cf-help-body ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.cf-help-body li { margin-bottom: 4px; }
+.cf-help-body li strong { color: #fff; font-weight: 600; }
+.cf-help-body li em { color: var(--cf-gold); font-style: italic; }
+.cf-help-body kbd {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cf-line-strong);
+  color: var(--cf-gold);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-width: 16px;
+  text-align: center;
+}
+.cf-help-keys {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.cf-help-keys td {
+  padding: 4px 4px 4px 0;
+  vertical-align: top;
+  color: var(--cf-text-2);
+}
+.cf-help-keys td:nth-child(odd) {
+  white-space: nowrap;
+  padding-right: 10px;
+}
+.cf-help-keys td:nth-child(2) { padding-right: 18px; }
+
 /* ---------------- Pending list interactions ---------------- */
 .cf-comment-clickable {
   cursor: pointer;
