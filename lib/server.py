@@ -150,18 +150,6 @@ class FeedbackHandler(http.server.SimpleHTTPRequestHandler):
             self._json(200, {"ok": True})
             return
 
-        if parsed.path == "/mark-seen":
-            length = int(self.headers.get("Content-Length", "0"))
-            body = self.rfile.read(length).decode("utf-8") if length else ""
-            try:
-                data = json.loads(body)
-            except json.JSONDecodeError:
-                data = {}
-            seen_path = self.feedback_dir / "lastseen.json"
-            seen_path.write_text(json.dumps(data, indent=2))
-            self._json(200, {"ok": True})
-            return
-
         # Snapshot PNG upload — body is raw image bytes, filename comes from URL.
         # The client posts to /snapshot/<id>.png; we save under feedback/snapshots/
         # and the agent reads the file directly from disk when processing the inbox.

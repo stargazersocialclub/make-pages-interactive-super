@@ -662,9 +662,9 @@ body.cf-snapshot-armed * {
 [data-cf-change].cf-change-active {
   outline: 2.5px solid var(--cf-gold-deep);
   background: rgba(230, 203, 133, 0.08);
-  animation: cf-pulse 1.5s ease-in-out 2;
+  animation: cf-change-pulse 1.5s ease-in-out 2;
 }
-@keyframes cf-pulse {
+@keyframes cf-change-pulse {
   0%, 100% { outline-color: var(--cf-gold-deep); }
   50%      { outline-color: var(--cf-gold); }
 }
@@ -828,10 +828,12 @@ body.cf-snapshot-armed * {
 }
 
 /* When the editing target is an image / video / canvas, hide the text-only
-   toolbar controls. The drag handle is what matters; cancel + confirm stay. */
+   toolbar controls (bold, italic, lists, alignment, case, font/color/bg row).
+   The drag handle is what matters; cancel + confirm stay. The border/radius
+   row stays visible so the user can still frame the image. */
 body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-fmt,
 body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-case,
-body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row {
+body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row-text {
   display: none;
 }
 body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
@@ -857,9 +859,9 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   outline-color: #E6CB85 !important;
   outline-style: solid !important;
 }
-/* Frosted glass — translucent dark surface with backdrop-blur.
-   Skin notes: rgba(20,20,24,.72) bg, hairline white border, 12px radius,
-   gold accent on active controls, subtle hover lift. */
+/* Inline edit toolbar — opaque dark surface, gold-edged border with a soft
+   halo + drop shadow so it visibly floats above the page. Three rows: text
+   format / case, font + color + bg + reset, border + radius + help. */
 .cf-edit-toolbar {
   position: fixed;
   z-index: 2147483643;
@@ -1026,43 +1028,9 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   margin: 2px 6px;
 }
 
-/* ---------------- Style-row primitives (used by the toolbar row 2) ---------------- */
-.cf-style-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.cf-style-lbl {
-  color: #E6CB85;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 9px;
-  font-weight: 600;
-  min-width: 42px;
-}
-.cf-style-row select {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: white;
-  border-radius: 4px;
-  padding: 2px 18px 2px 6px;
-  font-size: 11px;
-  flex: 1;
-  height: 24px;
-  font-family: inherit;
-}
-.cf-style-num {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  color: white;
-  border-radius: 4px;
-  padding: 2px 4px;
-  font-size: 11px;
-  width: 48px;
-  height: 24px;
-  font-family: inherit;
-  text-align: center;
-}
+/* Hide the native number spinner so the custom ▲/▼ buttons (see .cf-num-step
+   below) own that affordance. Live: every cf-style-num input is wrapped by
+   decorateNumberSpinners() into a cf-num-group with the custom controls. */
 .cf-style-num::-webkit-inner-spin-button,
 .cf-style-num::-webkit-outer-spin-button {
   -webkit-appearance: none;
@@ -1116,15 +1084,6 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
 .cf-color-input:hover {
   border-color: rgba(230, 203, 133, 0.6);
   transform: translateY(-1px);
-}
-.cf-style-row .cf-btn {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.18);
-  color: white;
-  font-size: 11px;
-}
-.cf-style-row .cf-btn:hover {
-  background: rgba(255, 255, 255, 0.16);
 }
 
 /* ---------------- Pending-marker action menu (refine / remove) ---------------- */
@@ -1310,6 +1269,87 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
 }
 .cf-comment-clickable:hover {
   background: rgba(199, 162, 78, 0.07);
+}
+
+/* Pending-list per-comment content. These live INSIDE .cf-comment-quote so
+   each rule explicitly re-asserts font-style: normal (parent is italic by
+   default for plain selection quotes). Tokens come from the dark-skin palette
+   at the top of this file — no light-mode literals. */
+.cf-pq-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--cf-gold-deep);
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-style: normal;
+}
+.cf-pq-text {
+  color: var(--cf-text);
+  font-size: 12px;
+  margin-bottom: 4px;
+  font-style: normal;
+}
+.cf-pq-text-faint {
+  color: var(--cf-text-2);
+  font-size: 11px;
+  font-style: italic;
+  margin-bottom: 4px;
+}
+.cf-pq-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--cf-text-2);
+  font-style: normal;
+}
+.cf-pq-image {
+  display: block;
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+  border: 1px solid var(--cf-line-strong);
+  margin-bottom: 4px;
+}
+.cf-pq-image-small { max-height: 140px; }
+.cf-pq-before {
+  background: var(--cf-rose-tint);
+  color: var(--cf-rose);
+  padding: 3px 6px;
+  border-radius: 3px;
+  margin-bottom: 3px;
+  font-style: normal;
+}
+.cf-pq-before s { color: inherit; }
+.cf-pq-after {
+  background: var(--cf-leaf-tint);
+  color: var(--cf-leaf);
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-style: normal;
+}
+.cf-pq-style-card {
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 5px 7px;
+  border-radius: 3px;
+}
+.cf-pq-style-row {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--cf-text);
+  line-height: 1.45;
+  font-style: normal;
+}
+.cf-pq-style-prop  { color: var(--cf-text-3); }
+.cf-pq-style-arrow { color: var(--cf-text-3); }
+.cf-pq-style-before { color: var(--cf-rose); }
+.cf-pq-style-after  { color: var(--cf-leaf); font-weight: 600; }
+.cf-pq-markup {
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--cf-text-2);
+  font-style: normal;
 }
 
 /* Pulse animation applied briefly when scroll-to-target lands on an element */

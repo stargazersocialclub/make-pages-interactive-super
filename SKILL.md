@@ -5,7 +5,7 @@ description: Turn a directory of static HTML pages into a live commenting surfac
 
 # Make Pages Interactive
 
-Turns any folder of HTML files into a place the user can leave inline comments on (text selections, element selections, page-level notes). Comments POST to a local JSONL inbox; you (the agent) Monitor that inbox, edit the HTML in response, append to `feedback/history.json`, and the page auto-reloads with a walkthrough of what changed.
+Turns any folder of HTML files into a place the user can leave inline comments on (text selections, element selections, page-level notes, inline text edits, drag-reorders, region snapshots). Comments POST to a local JSONL inbox; you (the agent) Monitor that inbox, edit the HTML in response, append to `feedback/history.json`, and the page shows a "changes ready" banner — the user presses `R` to reload and see a walkthrough of what changed.
 
 ## When to invoke
 
@@ -66,7 +66,7 @@ When a new batch arrives in `inbox.jsonl`:
     ]
   }
   ```
-- The page polls `history.json`, sees the new batch, auto-reloads (scroll position preserved), and offers the user a walkthrough of the changes. The "processing…" banner clears automatically when any `in_response_to` matches a submitted comment id.
+- The page polls `history.json`, sees the new batch, and surfaces a "changes ready" banner at the top of the page (plus a 🔔 prefix in the tab title). The user presses `R` (or clicks the banner) to reload — scroll position is preserved, and the walkthrough is reachable via `T` or the panel button. The "processing…" banner clears automatically when any `in_response_to` matches a submitted comment id.
 
 ### Comment types
 
@@ -86,7 +86,7 @@ Each inbox comment carries a `type` field:
 The user has already made the edit they want — your job is to apply it to the file and let them see it stick. The visual change is showing in their browser until the page reloads.
 
 1. Locate the element in the HTML using the anchor info (`elements[0].cf_id` / `selector` / `text_snippet`).
-2. Apply the change. If only the visible text differs (most common case), do a straight text swap in the file: replace `original_text` with `new_text` in that element's content. If `new_html` differs from `original_html` in structure (the user added/removed `<b>`, `<i>`, `<br>` via the toolbar), use `new_html` as your reference for inner content. If `new_outer_html` differs from `original_outer_html` in attributes (the user used the style panel to set font-family, color, background, border, or border-radius), update the element's `style="…"` attribute in the file to match `new_outer_html`. A single text-edit may involve text + HTML + style changes at once.
+2. Apply the change. If only the visible text differs (most common case), do a straight text swap in the file: replace `original_text` with `new_text` in that element's content. If `new_html` differs from `original_html` in structure (the user added/removed `<b>`, `<i>`, `<br>` via the toolbar), use `new_html` as your reference for inner content. If `new_outer_html` differs from `original_outer_html` in attributes (the user used the toolbar to set font-family, font-size, color, background, border weight/color, or border-radius), update the element's `style="…"` attribute in the file to match `new_outer_html`. A single text-edit may involve text + HTML + style changes at once.
 3. **Quietly fix obvious spelling AND grammar errors in `new_text` before writing it.** The user types in the browser without aggressive spell/grammar check and prefers these fixed silently rather than mirrored into the file. Fix: typos, missing/extra articles ("with restaurant" → "with a restaurant"), plural/tense agreement, terminal punctuation, missing possessive apostrophes, whitespace artifacts (`&nbsp;`, double spaces), Oxford commas in new 3+ item lists. Do NOT touch: wording, voice, register (incl. intentional informalisms like "fam"), em-dashes, sentence fragments used rhetorically, capitalization, or substantive copy. If unsure, leave it. Note any QC fixes in the history `description` so the diff is traceable.
 4. Add a `data-cf-change="ch-<slug>"` anchor to the element (or a wrapper) just like any other change.
 5. Record a history entry where the `title` summarizes the edit and the `description` notes both the old and new text (helps you reconstruct intent later if needed).
@@ -153,11 +153,16 @@ Strips both tags from every `*.html`. Leaves the `feedback/` directory alone (de
 ~/.claude/skills/make-pages-interactive/
 ├── SKILL.md                # this file (agent-facing)
 ├── README.md               # GitHub-facing docs (human readers)
+├── CHANGELOG.md            # versioned change log (Keep a Changelog format)
 ├── LICENSE
+├── screenshot.png          # README screenshot
+├── docs/                   # design / scope notes (e.g. viewport-switcher v0.3)
 ├── lib/
 │   ├── feedback.js         # client library: selection, element mode, move mode,
-│   │                       # snapshot mode, inline editor, draggable launcher,
-│   │                       # pending list, history walkthrough
+│   │                       # snapshot mode, inline editor (text + image), grid
+│   │                       # overlay + snap-to-grid, draggable launcher,
+│   │                       # pending list with per-element markers + marker menu,
+│   │                       # quick-guide overlay, history walkthrough
 │   ├── feedback.css        # styles (scoped under #claude-feedback-root)
 │   ├── html2canvas.min.js  # vendored html2canvas 1.4.1, lazy-loaded on first
 │   │                       # snapshot. Bundled so it works offline.

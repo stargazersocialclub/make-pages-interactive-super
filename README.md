@@ -2,30 +2,31 @@
 
 A heavier fork of [paraschopra/make-pages-interactive](https://github.com/paraschopra/make-pages-interactive) — a Claude Code skill that turns any folder of static HTML pages into a **live commenting surface**.
 
-Highlight text, click an element, double-click to edit in place, drag to reorder, snapshot a region, hit `Alt`+drag to capture a screenshot — every comment lands in a local JSONL inbox that Claude reads and responds to by editing the source pages. The page auto-reloads with a walkthrough of what changed.
+Highlight text, click an element, double-click to edit in place, drag to reorder, hold `Alt` + drag to snapshot a region — every comment lands in a local JSONL inbox that Claude reads and responds to by editing the source pages. The page surfaces a "changes ready" banner; press `R` to reload and see a walkthrough of what changed.
 
-This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `server.py`) and adds inline text editing, structural drag-and-drop, region screenshots, a draggable corner-anchored launcher, an opaque-dark gold-accent skin, and a lot of editor polish. All commenting goes through the same inbox.
+This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `server.py`) and adds inline text editing, structural drag-and-drop, region screenshots, a grid overlay + snap-to-grid, per-element pending markers with a refine/remove action menu, a quick-guide overlay, a draggable corner-anchored launcher, an opaque-dark gold-accent skin, and a lot of editor polish. All commenting goes through the same inbox.
 
 ---
 
 ## What's new vs the original
 
 ### Inline text editing
-- **Double-click any text-bearing element** (`<p>`, `<h1-h6>`, `<li>`, `<td>`, `<div>` text-leaf, etc.) to edit it in place. The element becomes `contenteditable` with a floating two-row toolbar.
+- **Double-click any text-bearing element** (`<p>`, `<h1-h6>`, `<li>`, `<td>`, `<div>` text-leaf, etc.) to edit it in place. The element becomes `contenteditable` with a floating three-row toolbar.
 - **Double-click any `<li>`** to edit the whole `<ul>`/`<ol>` — Enter inside an existing bullet natively adds a new one.
-- **Double-click any `<img>`/`<video>`/`<canvas>`/`<svg>`/`<picture>`/`<iframe>`** to enter a resize-only experience (no contenteditable, drag the corner handles).
-- **Cancel** restores the original `innerHTML` *and* the original `style` attribute (so font / color / width / margins / etc. all snap back).
+- **Double-click any `<img>`/`<video>`/`<canvas>`/`<svg>`/`<picture>`/`<iframe>`** (or any background-image div without text content) to enter a resize-only experience — text-format controls hide, drag the corner handles, but the border/radius row stays so you can still frame the image.
+- **Cancel** restores the original element (full outer HTML — class, style, alignment attributes, everything snaps back).
 - **Click outside** the editing element auto-submits the edit (or exits cleanly if no changes).
 - **Double-click a different element** while one is open swaps the target — the current edit commits first.
 - **Toolbar** (row 1): Bold · Italic · UL · OL · ←/center/→ align · UPPER / lower / Title case · cancel · confirm (⌘↵).
 - **Toolbar** (row 2): font family (curated list + page-detected web fonts) · numeric font-size · color · bg · reset.
-- **Selection-aware** — selecting text inside the editing element repopulates the font / size / color controls from the element under the caret.
+- **Toolbar** (row 3): border weight · border color · border radius · `?` quick guide. Number inputs have custom ▲/▼ spinners that match the dark-gold skin.
+- **Selection-aware** — selecting text inside the editing element repopulates the font / size / color controls from the element under the caret. Border + radius are element-scoped and only populate at edit start.
 - **⌘B / ⌘I** keep working inside the editable.
-- **Corner-handle resize** (4 handles, TL/TR/BL/BR). Snaps the dragged edges to nearby element edges within ~8 px (siblings + parent + grandparent).
+- **Corner-handle resize** (4 handles, TL/TR/BL/BR). Snaps the dragged edges to nearby element edges within ~8 px (siblings + parent + grandparent). When **snap-to-grid** is on, snaps to the nearest 24 px grid line as well.
 - **Style-only diff** — the pending row shows `font-size: 13px → 22px`, `+ <b>`, etc., even when text didn't change.
 
 ### Drag and drop reorder
-- Press **`M`** (or the panel's "↕ move element" button) to enter move mode. Cursor turns to grab.
+- Press **`M`** (or the panel's "↕ move" button) to enter move mode. Cursor turns to grab.
 - Click and drag any element with siblings. A ghost clone follows the cursor; a gold horizontal indicator marks the insertion point between siblings of the original parent.
 - Release queues a `type: "move"` comment with the element, its parent, and from/to anchor info (compact structural refs of the prev/next siblings).
 - Auto-generated description: `moved "X" above "Y"` / `to top of list` / `to end of list`.
@@ -42,9 +43,21 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 - Server endpoint: `POST /snapshot/<id>.png` validates the filename, caps at 10 MB, writes to `feedback/snapshots/<id>.png` so the agent can `Read` it directly.
 
 ### Pending list & history
-- Per-row diff rendering for `text-edit` (red strikethrough / green added), `style edit` (prop-by-prop diff like `font-size: 13px → 22px`), `move` (`parent#id: position 3 → 0`), and `snapshot` (thumbnail + element count).
+- Per-row diff rendering for `text-edit` (rose strikethrough / leaf-green added), `style edit` (prop-by-prop diff like `font-size: 13px → 22px`), `move` (`parent#id: position 3 → 0`), and `snapshot` (thumbnail + element count). All in the dark-skin palette — no light-mode color leaks.
+- **Per-element pending markers** — a gold ✎ badge floats on every element with a queued change (✎ for text/style edits, 💬 for selection/element comments, ↕ for moves). Hover the marker to outline its target. Click for a refine/remove menu. Void elements (`<img>`, `<video>`, etc.) get a floating marker pinned to the page in document coords so it scrolls with the content.
+- **`remove` from the marker menu reverts the visual edit** — text edits restore the full original outer HTML; moves unwind the parent's full move stack so sibling order stays correct when one of several stacked moves is removed.
+- **`remove` from the in-list trashcan** discards the pending entry without reverting the visual (use it when the visual is already where you want it but you don't want it tracked).
 - **`clear all`** ghost button next to submit — confirms, then discards everything pending.
 - Snapshot thumbnails persist into the editor on re-edit via `editPendingComment`.
+
+### Grid overlay + snap-to-grid
+- Two toggles in the panel: **`⊞ show grid`** displays a 24 px gold-tinted grid overlay over the page (does not block clicks). **`🧲 snap to grid`** adds the nearest grid lines as snap candidates when you drag a resize handle.
+- Toggles persist across reloads (`localStorage["cf-grid-shown"]` / `"cf-grid-snap"`).
+- Snap is currently scoped to the inline-editor resize handles (it doesn't affect drag-reorder; the toolbar copy reads "snap resize to 24 px grid").
+
+### Quick guide overlay
+- Two launchers — **`?` in the panel header** and **`?` in the inline-edit toolbar** — plus the **`?` hotkey** open a modal that lists the quick-start path, the editing toolbar reference, the keyboard table, and launcher tips.
+- The overlay is the source of truth for shortcuts; the panel header strip and the pending-tab hint are abbreviated.
 
 ### Launcher pill (free drag + keyboard)
 - Pill is **draggable**. Click-and-hold past a 6 px threshold starts a drag; release snaps to the nearest viewport corner. Click without drag still toggles the panel.
@@ -69,6 +82,7 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 | `⌘B` / `⌘I` | Bold / italic inside the inline editor |
 | `⌘↵` | Confirm inline edit |
 | `⌘S` | Submit pending batch |
+| `?` | Open the quick guide overlay |
 | `Esc` | Cancel current mode / close panel |
 
 ### UI direction
@@ -82,9 +96,11 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 ### Stability / DX
 - Stale-batch threshold bumped from 90 s → 5 min (most agent batches take 1–3 min in practice; the 90 s warning was firing during normal work).
 - Auto-tour on reload removed (the highlight outline was easy to mistake for element-selection mode). The tour is still reachable via `T` or the panel button.
+- Auto-reload on history change removed — replaced with a top-center "changes ready, press R" banner so users in another tab don't lose state to a surprise reload. Tab title gets a 🔔 prefix.
+- Submit batch is guarded against double-fire (a fast double-click + ⌘S no longer produces two identical inbox entries).
 - Comment textarea is `resize: both`.
 - Confirm dialog removed — edits land in pending immediately; the per-row "edit" button reopens the original element for refinement.
-- Cancel restores `style.cssText` (full inline-style snapshot) — not just `innerHTML`.
+- Cancel restores the element via `outerHTML` clone — class, style, alignment attributes, everything snaps back, not just `innerHTML`.
 
 ---
 
@@ -93,22 +109,22 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 ```
                   ┌──────────────────┐
    user highlights│   feedback.js    │   POST /feedback
-   / clicks / ───▶ │  (in every page) │ ───────────────┐
+   / clicks / ───▶│  (in every page) │ ────────────────┐
    drags / Alt-   └──────────────────┘                 ▼
-   drags / etc.                                ┌────────────────┐
-                  ┌──────────────────┐  poll  │   server.py    │
-   page reloads ◀─│   feedback.js    │ ◀───── │  (stdlib HTTP) │
-   with walkthru  └──────────────────┘history │  /lib · /feedback │
-                                              │  /mark-seen      │
-                                              │  /snapshot/*.png │
-                                              └───────┬────────┘
-                                                      │ append
-                                          ┌───────────▼────────────┐
+   drags / edits                              ┌────────────────────┐
+                  ┌──────────────────┐  poll  │     server.py      │
+   "changes      ◀│   feedback.js    │◀────── │   (stdlib HTTP)    │
+    ready"       │                  │history │  /lib · /info      │
+    banner       └──────────────────┘        │  /feedback         │
+                                             │  /snapshot/*.png   │
+                                             └─────────┬──────────┘
+                                                       │ append
+                                          ┌────────────▼───────────┐
                                           │  feedback/inbox.jsonl  │
                                           │  feedback/snapshots/*  │
-                                          └───────────┬────────────┘
-                                                      │ Monitor
-                                                      ▼
+                                          └────────────┬───────────┘
+                                                       │ Monitor
+                                                       ▼
                                           ┌────────────────────────┐
                                           │  Claude (the agent)    │
                                           │  edits HTML, appends   │
@@ -234,7 +250,9 @@ If 5 minutes pass and no entry appears in history.json, a stale-batch banner sug
 make-pages-interactive-super/
 ├── SKILL.md                 # Agent-facing skill spec
 ├── README.md                # This file
+├── CHANGELOG.md             # Keep-a-Changelog versioned changes
 ├── screenshot.png           # README screenshot
+├── docs/                    # Design / scope notes (e.g. viewport-switcher v0.3)
 ├── LICENSE
 ├── lib/
 │   ├── feedback.js          # Client library
