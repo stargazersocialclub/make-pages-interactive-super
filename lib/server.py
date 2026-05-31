@@ -162,6 +162,33 @@ class FeedbackHandler(http.server.SimpleHTTPRequestHandler):
             self._json(200, {"ok": True})
             return
 
+        # Snapshot PNG upload — body is raw image bytes, filename comes from URL.
+        # The client posts to /snapshot/<id>.png; we save under feedback/snapshots/
+        # and the agent reads the file directly from disk when processing the inbox.
+        if parsed.path.startswith("/snapshot/"):
+            filename = parsed.path[len("/snapshot/"):]
+            # Whitelist: alphanum, dash, underscore, ending in .png — defends against
+            # path traversal and stray content types.
+            if not filename or "/" in filename or not filename.endswith(".png"):
+                self._json(400, {"ok": False, "error": "bad filename"})
+                return
+            stem = filename[:-4]
+            if not all(c.isalnum() or c in "-_" for c in stem):
+                self._json(400, {"ok": False, "error": "bad filename"})
+                return
+            length = int(self.headers.get("Content-Length", "0"))
+            if length <= 0 or length > 10 * 1024 * 1024:  # 10 MB cap
+                self._json(413, {"ok": False, "error": "too large or empty"})
+                return
+            body = self.rfile.read(length)
+            snap_dir = self.feedback_dir / "snapshots"
+            snap_dir.mkdir(parents=True, exist_ok=True)
+            (snap_dir / filename).write_bytes(body)
+            sys.stdout.write(f"[feedback] snapshot saved -> {snap_dir / filename} ({length} bytes)\n")
+            sys.stdout.flush()
+            self._json(200, {"ok": True, "path": f"feedback/snapshots/{filename}"})
+            return
+
         self._json(404, {"ok": False, "error": "unknown endpoint"})
 
     def _json(self, status: int, payload: dict):
