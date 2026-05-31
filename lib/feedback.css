@@ -422,8 +422,22 @@
   margin-top: 0;
 }
 .cf-panel-actions .cf-btn,
-.cf-panel-actions .cf-btn-primary { flex: 1; }
-.cf-panel-actions .cf-btn-ghost { flex: 0 0 auto; padding: 9px 18px; }
+.cf-panel-actions .cf-btn-primary {
+  flex: 1;
+  padding: 7px 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;        /* allow flex children to shrink without overflowing */
+}
+.cf-panel-actions .cf-btn .cf-kbd-hint {
+  font-size: 9px;
+  padding: 0 4px;
+}
+.cf-panel-actions .cf-btn-ghost { flex: 0 0 auto; padding: 7px 14px; }
 
 .cf-hint {
   margin: 0;
