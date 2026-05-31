@@ -170,7 +170,7 @@
   bottom: 78px;
   width: 380px;
   /* Fixed height so the panel doesn't resize when you switch tabs */
-  height: min(540px, calc(100vh - 110px));
+  height: min(720px, calc(100vh - 96px));
   background: var(--cf-surf-light);
   /* Strong gold edge so the panel is unmistakably "on top of" the page —
      2px gold border, layered outer gold halo for separation, plus a
@@ -1054,6 +1054,41 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* Custom ▲/▼ spinner buttons for .cf-num-spin number inputs */
+.cf-num-group {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  flex: 0 0 auto;
+}
+.cf-num-group .cf-style-num {
+  padding-right: 16px;
+  width: 56px;
+}
+.cf-num-step {
+  position: absolute;
+  right: 2px;
+  width: 13px;
+  height: 11px;
+  border: 1px solid var(--cf-line-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cf-gold);
+  font-size: 7px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+}
+.cf-num-up   { top: 2px;    }
+.cf-num-down { bottom: 2px; }
+.cf-num-step:hover {
+  background: var(--cf-gold-tint);
+  border-color: var(--cf-gold);
+}
 .cf-color-input {
   width: 28px;
   height: 26px;
@@ -1077,6 +1112,24 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
 .cf-style-row .cf-btn:hover {
   background: rgba(255, 255, 255, 0.16);
 }
+
+/* ---------------- Pending-marker action menu (refine / remove) ---------------- */
+.cf-marker-menu {
+  position: fixed;
+  display: none;
+  gap: 6px;
+  padding: 6px;
+  background: var(--cf-surf-mid);
+  border: 1.5px solid var(--cf-gold-deep);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 3px rgba(199, 162, 78, 0.15),
+    0 12px 28px rgba(0, 0, 0, 0.5);
+  z-index: 2147483647;
+}
+.cf-marker-menu.cf-visible { display: inline-flex; }
+.cf-marker-menu .cf-btn { padding: 5px 12px; font-size: 12px; }
 
 /* ---------------- Grid overlay + grid-snap toggles ---------------- */
 .cf-grid-overlay {
