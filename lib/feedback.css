@@ -449,10 +449,39 @@ body.cf-elem-mode {
 }
 
 /* When the toggle button is active */
-#cf-elem-toggle.cf-active {
+#cf-elem-toggle.cf-active,
+#cf-move-toggle.cf-active {
   background: #b14000;
   color: white;
   border-color: #b14000;
+}
+
+/* ---------------- Move mode (drag-and-drop reorder) ---------------- */
+body.cf-move-mode {
+  cursor: grab;
+}
+body.cf-move-mode *:not(#claude-feedback-root):not(#claude-feedback-root *):not(.cf-edit-toolbar):not(.cf-edit-toolbar *):not(.cf-resize-handle):not(.cf-border-popover):not(.cf-border-popover *) {
+  cursor: grab !important;
+}
+body.cf-move-mode .cf-move-source {
+  opacity: 0.35;
+}
+.cf-move-ghost {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  outline: 2px solid #C7A24E;
+  outline-offset: 0;
+  border-radius: 6px;
+  background-clip: padding-box;
+  box-sizing: border-box;
+}
+.cf-move-drop-indicator {
+  position: fixed;
+  height: 3px;
+  background: #C7A24E;
+  box-shadow: 0 0 8px rgba(199, 162, 78, 0.7), 0 0 2px #fff;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2147483645;
 }
 
 /* Element-popup button arrangement (two buttons side-by-side) */
