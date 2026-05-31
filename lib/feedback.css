@@ -436,6 +436,21 @@
 }
 .cf-hint em { color: var(--cf-gold); font-style: italic; }
 .cf-hint strong { color: #fff; font-weight: 600; }
+.cf-hint kbd {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cf-line-strong);
+  color: var(--cf-gold);
+  border-radius: 3px;
+  padding: 0 5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  min-width: 14px;
+  text-align: center;
+  vertical-align: 1px;
+}
 
 /* ---------------- Inline selection popup ---------------- */
 .cf-selection-popup {
