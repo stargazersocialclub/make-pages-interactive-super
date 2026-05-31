@@ -75,7 +75,11 @@ Each inbox comment carries a `type` field:
 - **`selection`** — user highlighted a span of text. Payload: `quote` (the selected text), `anchor` (the enclosing element's info), `comment` (the user's note).
 - **`elements`** — user clicked one or more elements in element-selection mode. Payload: `elements[]` (anchor info for each), `comment`.
 - **`general`** — page-level comment not tied to a region. Payload: `comment` only.
-- **`text-edit`** — user double-clicked an element and edited the text inline (see below). Payload: `elements[]` (single-item; the edited element), `original_text` / `new_text` (innerText), `original_html` / `new_html` (innerHTML), `original_outer_html` / `new_outer_html` (outerHTML; needed for style-only edits since style attrs live on the element tag itself, not in innerHTML), and optional `comment` (their note about the edit).
+- **`text-edit`** — user double-clicked an element and edited it inline (see below). Payload: `elements[]` (single-item; the edited element), `original_text` / `new_text` (innerText), `original_html` / `new_html` (innerHTML), `original_outer_html` / `new_outer_html` (outerHTML; needed for style-only edits since style attrs live on the element tag itself, not in innerHTML), and optional `comment` (their note about the edit). Special cases:
+  - **Image edit**: the dblclick landed on an `<img>`/`<video>`/`<canvas>`/`<svg>`/`<picture>`/`<iframe>` — text won't change but `new_outer_html` will have new `width`/`height` (and possibly `margin-left`/`margin-top`) inline styles from the drag handles. Apply by updating the element's `style` attribute in source.
+  - **List edit**: the dblclick landed inside a `<ul>`/`<ol>` — the editing target is the *list*, not a single `<li>`. Diff against `new_html` to see added / removed / reordered `<li>` items.
+- **`move`** — user dragged an element to a new position among its siblings in move mode. Payload: `element` (anchor info), `parent` ({ tag, id, selector }), `from` and `to` ({ `index`, `prev_anchor`, `next_anchor` }), auto-generated `comment` like `moved "X" above "Y"`. `*_anchor` fields are compact `{ tag, id, cf_id, data_svc, data_cf_change, text_snippet }` refs of the prev/next siblings — use them to locate the source position when `cf_id` isn't persisted.
+- **`snapshot`** — user Alt-dragged a region. Payload: `region` ({ `x`, `y`, `w`, `h`, viewport coords too }), `image_path` (relative path like `feedback/snapshots/snap-<ts>-<rand>.png` — Read it with the Read tool to view), `elements[]` (up to 15 element anchors whose bounding rects intersect the captured region — structural context alongside the pixels), and the user's `comment`.
 
 ### Handling `text-edit` comments
 
@@ -88,6 +92,28 @@ The user has already made the edit they want — your job is to apply it to the 
 5. Record a history entry where the `title` summarizes the edit and the `description` notes both the old and new text (helps you reconstruct intent later if needed).
 
 If the user added a note in `comment`, treat it as additional intent — they may want you to also adjust adjacent prose for consistency, fix Oxford commas in a list they just expanded, etc.
+
+### Handling `move` comments
+
+The user has visually reordered the element on the page — your job is to make the same reorder in source.
+
+1. Locate the moved element using `element.cf_id` / `selector` / `outer_html` / `text_snippet`.
+2. Locate the new position using `parent.selector` plus `to.prev_anchor` / `to.next_anchor`. The `next_anchor` is usually the load-bearing ref — find that sibling in source and insert the moved element directly before it. If `next_anchor` is null, the element should land at the end of `parent`. If `prev_anchor` is null, at the start.
+3. If the dragged element carries a `data-cf-change` anchor from a prior batch, you can reuse it; otherwise add a fresh `data-cf-change="ch-<slug>"` so the walkthrough can find the move.
+4. Record a history entry summarizing the move (`title: "Moved 'Andromeda' card above 'Orion'"`).
+
+Edge cases:
+- If the host page's JS rebuilds the moved element's parent (e.g. an estimate panel rendered by template) the visual move was wiped on next render — the source edit is what matters.
+- If `from.index === to.index`, the user dragged but landed in the same slot — usually safe to ignore as a no-op (the library doesn't queue zero-delta moves, but a refinement might).
+
+### Handling `snapshot` comments
+
+The user wants to point at something visual.
+
+1. Read the image with the `Read` tool — `feedback/snapshots/<filename>.png` (the `image_path` field). The PNG was captured by html2canvas in the user's browser.
+2. The `elements[]` array lists the cf_ids / tags / text snippets that intersect the captured region — use it to narrow down which source elements the user is pointing at.
+3. The `comment` field is the user's note. Combine the image, the elements list, and the comment to figure out what to change.
+4. Record a history entry; reference the snapshot's image_path in the description so future-you knows what was shown.
 
 ## On startup in a directory that already has feedback
 
@@ -125,16 +151,21 @@ Strips both tags from every `*.html`. Leaves the `feedback/` directory alone (de
 
 ```
 ~/.claude/skills/make-pages-interactive/
-├── SKILL.md              # this file (agent-facing)
-├── README.md             # GitHub-facing docs (human readers)
+├── SKILL.md                # this file (agent-facing)
+├── README.md               # GitHub-facing docs (human readers)
 ├── LICENSE
 ├── lib/
-│   ├── feedback.js       # client library: selection + commenting + tour
-│   ├── feedback.css      # styles
-│   └── server.py         # stdlib-only HTTP server
+│   ├── feedback.js         # client library: selection, element mode, move mode,
+│   │                       # snapshot mode, inline editor, draggable launcher,
+│   │                       # pending list, history walkthrough
+│   ├── feedback.css        # styles (scoped under #claude-feedback-root)
+│   ├── html2canvas.min.js  # vendored html2canvas 1.4.1, lazy-loaded on first
+│   │                       # snapshot. Bundled so it works offline.
+│   └── server.py           # stdlib-only HTTP server, also serves snapshot PNG
+│                           # uploads at POST /snapshot/<id>.png
 └── scripts/
-    ├── inject.py         # idempotent tag injection / removal
-    └── update.py         # git pull --ff-only
+    ├── inject.py           # idempotent tag injection / removal
+    └── update.py           # git pull --ff-only
 ```
 
 ## Gotchas
@@ -142,3 +173,5 @@ Strips both tags from every `*.html`. Leaves the `feedback/` directory alone (de
 - The injected `<link>` and `<script>` reference absolute paths `/lib/feedback.css` and `/lib/feedback.js`. These resolve through `server.py`, which routes `/lib/*` to the skill's own `lib/` directory. So pages only work when opened through this server — opening the HTML file directly in a browser will silently fail to load the feedback widget (the page itself still renders).
 - `history.json` order matters: append (don't prepend). The library walks from the end to find the latest batch for the walkthrough.
 - `anchor` values must match a `data-cf-change` attribute actually present in the HTML. Typos here cause "anchor not found" warnings post-reload.
+- Snapshots are saved to `feedback/snapshots/<id>.png` by the server. The agent reads them via the `Read` tool on the relative path. `inbox.jsonl` carries the path, not the bytes — the file stays compact even with many snapshots.
+- The library opts out of drag-reorder for elements with `data-cf-no-move` (or whose parent has `data-cf-no-move-children`). Use these attributes on render-managed containers (estimate panels, dynamic lists) to prevent the user from queueing a move that the host page would immediately wipe on next render. The agent can still apply moves to source if the user does drag one of those — but if you notice the pattern, you can suggest adding the attribute.
