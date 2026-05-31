@@ -1323,8 +1323,12 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
   border-radius: 4px;
 }
 
-/* "Pending text-edit" marker — pencil badge on the top-right of the element.
-   Real <span> (not a ::after pseudo) so we can attach hover + click handlers. */
+/* Pending-edit marker — gold pencil badge on the top-right of the element.
+   Real <span> (not a ::after pseudo) so we can attach hover + click handlers.
+   For void elements that can't host children (img, video, etc.), the marker
+   floats — pinned to <body> via absolute document-coord positioning so it
+   scrolls with the page. .cf-marker-floating overrides the corner-anchored
+   right/bottom rules so the inline top/left win. */
 .cf-has-pending-edit {
   position: relative;
   transition: outline 0.15s ease, background 0.15s ease;
@@ -1358,6 +1362,11 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
   transform: scale(1.18);
   box-shadow: 0 4px 18px rgba(199, 162, 78, 0.85), 0 0 0 1px rgba(0, 0, 0, 0.08);
   animation: none;
+}
+.cf-edit-marker.cf-marker-floating {
+  /* top/left are set inline; clear the corner-anchored right/bottom */
+  right: auto;
+  bottom: auto;
 }
 @keyframes cf-marker-pulse {
   0%, 100% { box-shadow: 0 2px 10px rgba(199, 162, 78, 0.6), 0 0 0 0 rgba(199, 162, 78, 0.6); }
