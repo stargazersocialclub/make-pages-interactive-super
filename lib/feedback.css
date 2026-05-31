@@ -1,20 +1,23 @@
 /* Claude Feedback — drop-in styles. All class names prefixed with cf- to avoid
    collisions with host-page CSS.
-   Skin: frosted-dark with gold accents. Three opacity tiers for surfaces —
-   toolbar most opaque, editor/toasts medium, side panel most translucent so
-   host content reads through. */
+   Skin: opaque dark surfaces with gold accents. Launcher pill is solid gold;
+   side panel gets a thick gold-edged border so it visibly separates from the
+   host page underneath. */
 
 #claude-feedback-root {
-  /* Surfaces */
-  --cf-surf-strong: rgba(20, 20, 24, 0.78);   /* toolbar */
-  --cf-surf-mid:    rgba(20, 20, 24, 0.66);   /* editor / toasts / tour / banner */
-  --cf-surf-light:  rgba(20, 20, 24, 0.46);   /* side panel — host bleeds through */
+  /* Surfaces — opaque dark, no translucency. Slight tonal hierarchy:
+     toolbar/editor a hair darker, side panel a hair lighter, so they feel
+     distinct from each other on layered z. */
+  --cf-surf-strong: #161618;
+  --cf-surf-mid:    #1A1A1D;
+  --cf-surf-light:  #1E1E22;
   /* Lines */
   --cf-line:        rgba(255, 255, 255, 0.10);
   --cf-line-strong: rgba(255, 255, 255, 0.18);
-  --cf-line-gold:   rgba(230, 203, 133, 0.42);
-  /* Text */
-  --cf-text:    rgba(255, 255, 255, 0.95);
+  --cf-line-gold:   rgba(230, 203, 133, 0.55);
+  /* Text — primary is full white; secondary/tertiary tiers stay dimmed and
+     are only used for inactive / resting labels and meta text. */
+  --cf-text:    #ffffff;
   --cf-text-2:  rgba(255, 255, 255, 0.65);
   --cf-text-3:  rgba(255, 255, 255, 0.42);
   /* Accents */
@@ -55,27 +58,26 @@
 #claude-feedback-root[data-corner="bl"] .cf-panel    { bottom: 78px; top: auto;    left: 18px; right: auto; }
 #claude-feedback-root[data-corner="br"] .cf-panel    { bottom: 78px; top: auto;    right: 18px; left: auto; }
 
-/* Launcher pill — translucent dark, gold-deep "feedback" text, gold border tint */
+/* Launcher pill (and every primary action) — solid gold gradient, dark text */
 .cf-btn-primary {
-  background: var(--cf-surf-strong);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-  color: var(--cf-gold);
-  border: 1px solid var(--cf-line-gold);
+  background: linear-gradient(180deg, var(--cf-gold), var(--cf-gold-deep));
+  color: #1a120a;
+  border: 1px solid var(--cf-gold-deep);
   border-radius: 999px;
   padding: 11px 18px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
   cursor: pointer;
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.42), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 8px 22px rgba(199, 162, 78, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
 .cf-btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 32px rgba(199, 162, 78, 0.22);
+  box-shadow: 0 12px 28px rgba(230, 203, 133, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.04);
 }
-.cf-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.cf-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; filter: none; }
 
 .cf-btn-primary.cf-btn-small,
 .cf-btn.cf-btn-small {
@@ -170,12 +172,17 @@
   /* Fixed height so the panel doesn't resize when you switch tabs */
   height: min(540px, calc(100vh - 110px));
   background: var(--cf-surf-light);
-  -webkit-backdrop-filter: blur(26px) saturate(160%);
-  backdrop-filter: blur(26px) saturate(160%);
-  border: 1px solid var(--cf-line);
+  /* Strong gold edge so the panel is unmistakably "on top of" the page —
+     2px gold border, layered outer gold halo for separation, plus a
+     traditional drop-shadow underneath. */
+  border: 2px solid var(--cf-gold-deep);
   border-radius: 14px;
   color: var(--cf-text);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55), 0 2px 4px rgba(0, 0, 0, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 4px rgba(199, 162, 78, 0.18),
+    0 22px 64px rgba(0, 0, 0, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -449,8 +456,6 @@
   z-index: 2147483643;
   width: 340px;
   background: var(--cf-surf-mid);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
   color: var(--cf-text);
   border: 1px solid var(--cf-line-strong);
   border-radius: 14px;
@@ -511,8 +516,6 @@
 .cf-reload-banner .cf-btn-primary,
 .cf-panel .cf-btn-primary {
   background: linear-gradient(180deg, var(--cf-gold), var(--cf-gold-deep));
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
   color: #1a120a;
   border: 1px solid rgba(230, 203, 133, 0.6);
   font-weight: 600;
@@ -683,8 +686,6 @@ body.cf-snapshot-armed * {
   bottom: 18px;
   transform: translateX(-50%) translateY(10px);
   background: var(--cf-surf-mid);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
   color: var(--cf-text);
   border: 1px solid var(--cf-line-strong);
   padding: 10px 14px;
@@ -731,8 +732,6 @@ body.cf-snapshot-armed * {
   left: 50%;
   transform: translateX(-50%) translateY(-12px);
   background: var(--cf-surf-mid);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
   color: var(--cf-text);
   border: 1px solid var(--cf-line-gold);
   padding: 10px 14px 10px 12px;
@@ -783,8 +782,6 @@ body.cf-snapshot-armed * {
   left: 50%;
   transform: translateX(-50%) translateY(-8px);
   background: var(--cf-surf-mid);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
   color: var(--cf-text);
   border: 1px solid var(--cf-line-strong);
   padding: 10px 16px;
@@ -799,6 +796,22 @@ body.cf-snapshot-armed * {
 .cf-toast.cf-visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* When the editing target is an image / video / canvas, hide the text-only
+   toolbar controls. The drag handle is what matters; cancel + confirm stay. */
+body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-fmt,
+body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-case,
+body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row {
+  display: none;
+}
+body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
+  display: none;
+}
+.cf-editing-image {
+  outline: 2px dashed var(--cf-gold) !important;
+  outline-offset: 4px;
+  cursor: default !important;
 }
 
 /* ---------------- Inline text-edit (double-click) ---------------- */
@@ -825,14 +838,15 @@ body.cf-snapshot-armed * {
   flex-direction: column;
   align-items: stretch;
   gap: 8px;
-  background: rgba(20, 20, 24, 0.72);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  backdrop-filter: blur(18px) saturate(140%);
-  color: rgba(255, 255, 255, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--cf-surf-strong);
+  color: var(--cf-text);
+  border: 1.5px solid var(--cf-gold-deep);
   border-radius: 12px;
   padding: 9px 12px;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 3px rgba(199, 162, 78, 0.15),
+    0 18px 48px rgba(0, 0, 0, 0.55);
   font-size: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -962,19 +976,20 @@ body.cf-snapshot-armed * {
 .cf-resize-handle {
   position: fixed;
   display: none;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   background: linear-gradient(135deg, #E6CB85, #C7A24E);
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
-  cursor: nwse-resize;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 3px;
   z-index: 2147483647;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   touch-action: none;
   transition: transform 0.15s ease;
 }
 .cf-resize-handle.cf-visible { display: block; }
-.cf-resize-handle:hover { transform: scale(1.12); }
+.cf-resize-handle:hover { transform: scale(1.18); }
+.cf-resize-tl, .cf-resize-br { cursor: nwse-resize; }
+.cf-resize-tr, .cf-resize-bl { cursor: nesw-resize; }
 .cf-edit-toolbar-sep {
   width: 1px;
   align-self: stretch;
