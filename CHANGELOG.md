@@ -9,6 +9,27 @@ this project uses [semantic versioning](https://semver.org/).
 
 Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
+### Removed
+
+- **Drag-and-drop reorder (move mode)** — entire feature parked for the
+  v0.3 heavy fork. User reported a suspected pointer-event collision
+  with the element selector and the inline-editor resize handles, and
+  asked to set it aside until that interaction can be redesigned
+  without sharing the document-level capture-phase listeners. Surgery
+  scope: `M` keyboard shortcut, the `↕ move` toolbar button, every
+  `move*` state var, `toggleMoveMode`, `onMovePointer*`,
+  `startMoveDrag` / `updateMoveDrag` / `endMoveDrag` / `cancelMoveDrag`,
+  `findDropIndex` / `positionDropIndicator`, `moveSiblingAnchor` /
+  `moveLabel` / `autoCommentForMove`, `revertMoveAndReplay`, the `move`
+  branches in `revertCommentVisual` / `clearAllRevertOne` / pending-list
+  rendering / `getCommentTarget` / `CF_MARKER_GLYPH`, the
+  `body.cf-move-mode` / `.cf-move-source` / `.cf-move-ghost` /
+  `.cf-move-drop-indicator` CSS, the SKILL.md `move` comment-type entry
+  and Handling section, README's "Drag and drop reorder" section, and
+  every `M` mention in the quick-guide overlay and pending-tab hint.
+  Element-mode (`E`) + delete still cover the structural-change
+  use case for now.
+
 ### Added
 
 - **Underline button** (toolbar row 1) — adjacent to bold / italic, wires

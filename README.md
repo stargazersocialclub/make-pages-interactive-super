@@ -4,7 +4,7 @@ A heavier fork of [paraschopra/make-pages-interactive](https://github.com/parasc
 
 Highlight text, click an element, double-click to edit in place, drag to reorder, hold `Alt` + drag to snapshot a region — every comment lands in a local JSONL inbox that Claude reads and responds to by editing the source pages. The page surfaces a "changes ready" banner; press `R` to reload and see a walkthrough of what changed.
 
-This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `server.py`) and adds inline text editing, structural drag-and-drop, region screenshots, a grid overlay + snap-to-grid, per-element pending markers with a refine/remove action menu, a quick-guide overlay, a draggable corner-anchored launcher, an opaque-dark gold-accent skin, and a lot of editor polish. All commenting goes through the same inbox.
+This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `server.py`) and adds inline text editing, container resize via Shift+double-click, region screenshots, a grid overlay + snap-to-grid, per-element pending markers with a refine/remove action menu, element-mode delete, a quick-guide overlay, a draggable corner-anchored launcher, an opaque-dark gold-accent skin, and a lot of editor polish. All commenting goes through the same inbox.
 
 ---
 
@@ -27,16 +27,6 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 - **Corner-handle resize** (4 handles, TL/TR/BL/BR). Snaps the dragged edges to nearby element edges within ~8 px (siblings + parent + grandparent). When **snap-to-grid** is on, snaps to the nearest 24 px grid line as well.
 - **Style-only diff** — the pending row shows `font-size: 13px → 22px`, `+ <b>`, etc., even when text didn't change.
 
-### Drag and drop reorder
-- Press **`M`** (or the panel's "↕ move" button) to enter move mode. Cursor turns to grab.
-- Click and drag any element with siblings. A ghost clone follows the cursor; a gold horizontal indicator marks the insertion point between siblings of the original parent.
-- Release queues a `type: "move"` comment with the element, its parent, and from/to anchor info (compact structural refs of the prev/next siblings).
-- Auto-generated description: `moved "X" above "Y"` / `to top of list` / `to end of list`.
-- **Re-dragging** an already-queued element refines the existing entry in place — keeps original `from`, updates `to`, reuses the comment id.
-- **Esc** cancels an in-progress drag; another Esc exits move mode.
-- Page click handlers are suppressed during move mode so a click-without-drag doesn't toggle anything.
-- Opt-out: `data-cf-no-move` on an element, or `data-cf-no-move-children` on a parent (use for render-managed containers).
-
 ### Region screenshots
 - Hold **`Alt`** — cursor turns to crosshair on the page (our UI keeps normal cursors).
 - Drag a rectangle. On release: html2canvas captures the document region, POSTs the PNG to `/snapshot/<id>.png`, and opens a comment editor with the thumbnail inlined.
@@ -52,9 +42,9 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 - Layout cascade (`:nth-child` rules, fixed grid columns) is whatever the host page's CSS already encodes; we don't try to fix it. If the deletion produces an obviously broken layout the user can comment again.
 
 ### Pending list & history
-- Per-row diff rendering for `text-edit` (rose strikethrough / leaf-green added), `style edit` (prop-by-prop diff like `font-size: 13px → 22px`), `move` (`parent#id: position 3 → 0`), and `snapshot` (thumbnail + element count). All in the dark-skin palette — no light-mode color leaks.
-- **Per-element pending markers** — a gold ✎ badge floats on every element with a queued change (✎ for text/style edits, 💬 for selection/element comments, ↕ for moves). Hover the marker to outline its target. Click for a refine/remove menu. Void elements (`<img>`, `<video>`, etc.) get a floating marker pinned to the page in document coords so it scrolls with the content.
-- **`remove` from the marker menu reverts the visual edit** — text edits restore the full original outer HTML; moves unwind the parent's full move stack so sibling order stays correct when one of several stacked moves is removed.
+- Per-row diff rendering for `text-edit` (rose strikethrough / leaf-green added), `style edit` (prop-by-prop diff like `font-size: 13px → 22px`), and `snapshot` (thumbnail + element count). All in the dark-skin palette — no light-mode color leaks.
+- **Per-element pending markers** — a gold ✎ badge floats on every element with a queued change (✎ for text/style edits, 💬 for selection/element comments). Hover the marker to outline its target. Click for a refine/remove menu. Void elements (`<img>`, `<video>`, etc.) get a floating marker pinned to the page in document coords so it scrolls with the content.
+- **`remove` from the marker menu reverts the visual edit** — text edits restore the full original outer HTML.
 - **`remove` from the in-list trashcan** discards the pending entry without reverting the visual (use it when the visual is already where you want it but you don't want it tracked).
 - **`clear all`** ghost button next to submit — confirms, then discards everything pending.
 - Snapshot thumbnails persist into the editor on re-edit via `editPendingComment`.
@@ -81,7 +71,6 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 | `P` | Open Pending tab |
 | `H` | Open History tab |
 | `E` | Toggle element-select mode |
-| `M` | Toggle move (drag-reorder) mode |
 | `Alt` (held) + drag | Capture a region snapshot |
 | `G` | New general comment |
 | `C` | Smart comment trigger (selection > element > general) |
@@ -145,7 +134,7 @@ The skill is still **just three files in `lib/`**, plus glue:
 
 | File | Role |
 |------|------|
-| `lib/feedback.js` | Client library injected into every page. Selection, element + move + snapshot modes, inline text editing, draggable launcher pill, pending list, history walkthrough. |
+| `lib/feedback.js` | Client library injected into every page. Selection, element + snapshot modes, inline text editing, container resize (Shift+dblclick), draggable launcher pill, pending list, history walkthrough. |
 | `lib/feedback.css` | Styles for the comment UI (scoped under `#claude-feedback-root`). |
 | `lib/html2canvas.min.js` | Bundled html2canvas 1.4.1, lazy-loaded by `feedback.js` only when a snapshot is first taken. |
 | `lib/server.py` | ~300-line stdlib-only HTTP server. Serves the page directory, accepts comment POSTs at `/feedback`, snapshot PNG uploads at `/snapshot/<id>.png`, and routes `/lib/*` to the skill's own `lib/` directory. Auto-shuts-down on parent death or 10 min idle. |
@@ -220,7 +209,6 @@ The `feedback/` directory (inbox / history / snapshots) is left alone — delete
 | `elements` | Click "select element", click any block, then comment | `elements[]`, `comment` |
 | `general` | "+ general" button or `G` shortcut | `comment` |
 | `text-edit` | Double-click, edit, ⌘↵ or click-out | `elements[0]`, `original_text` / `new_text`, `original_html` / `new_html`, `original_outer_html` / `new_outer_html` |
-| `move` | Drag-and-drop reorder in move mode | `element`, `parent`, `from { index, prev_anchor, next_anchor }`, `to { ... }`, auto-generated `comment` |
 | `snapshot` | Alt-drag a region | `region { x, y, w, h, viewport_x, viewport_y }`, `image_path` (`feedback/snapshots/<id>.png`), `elements[]` (intersecting), `comment` |
 | `delete` | "🗑 delete" in the element-mode popup | `element` (anchor), `parent { tag, id, selector }`, `index` (position in parent at deletion), `original_outer_html` (full untruncated) |
 
