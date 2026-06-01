@@ -32,6 +32,17 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **Copy page HTML button** in the panel header (📋 copy HTML). Clones
+  the live `<html>`, strips everything the feedback library injected —
+  `#claude-feedback-root`, the `/lib/feedback.{css,js}` link/script tags,
+  the html2canvas script, every `cf-*` session class, every `data-cf-*`
+  attribute, lingering `contenteditable` / `spellcheck` / empty
+  `style=""` artifacts, and any `.cf-edit-marker` / `.cf-snapshot-rect`
+  overlays — then writes the result to the clipboard (Clipboard API
+  with an execCommand fallback for blocked-permission cases) prefixed
+  with `<!DOCTYPE html>`. Toast confirms the character count.
+  Replaces the stale header-hint strip (which had `M` listed and other
+  rotted shortcuts).
 - **Underline button** (toolbar row 1) — adjacent to bold / italic, wires
   `document.execCommand("underline")` and the native `⌘U` keystroke.
 - **Element delete action** — new "🗑 delete" button in the element-mode

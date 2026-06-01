@@ -1205,6 +1205,16 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
   margin-right: 4px;
   box-shadow: 0 2px 6px rgba(199, 162, 78, 0.25);
 }
+
+/* Copy-HTML button — sits next to the help / close buttons in the panel
+   header. Subtle outlined style so it doesn't compete with the gold help
+   pill; tooltip explains what gets copied. */
+.cf-copy-html-btn {
+  padding: 5px 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  margin-right: 4px;
+}
 .cf-help-btn:hover {
   color: #1a120a;
   filter: brightness(1.06);
