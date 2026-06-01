@@ -11,6 +11,8 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **Underline button** (toolbar row 1) — adjacent to bold / italic, wires
+  `document.execCommand("underline")` and the native `⌘U` keystroke.
 - **Element delete action** — new "🗑 delete" button in the element-mode
   popup. Removes each selected element from the DOM immediately (siblings
   reflow naturally; no slot preservation) and queues one `type: "delete"`
