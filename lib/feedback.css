@@ -1190,15 +1190,24 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
   box-shadow: 0 2px 6px rgba(199, 162, 78, 0.25);
 }
 
-/* Copy-HTML button — sits next to the help / close buttons in the panel
-   header. Subtle outlined style so it doesn't compete with the gold help
-   pill; tooltip explains what gets copied. */
-.cf-copy-html-btn,
-.cf-sqs-audit-btn {
-  padding: 5px 10px;
-  font-size: 11px;
+/* Tools row — sits directly under the panel header, above the tabs.
+   Houses the page-scoped utility buttons (copy HTML, sqsp review) so
+   they have a clear surface of their own instead of crowding the header.
+   Each button stretches to take half the row. */
+.cf-panel-tools {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--cf-line);
+}
+.cf-panel-tools .cf-btn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 11.5px;
   letter-spacing: 0.04em;
-  margin-right: 4px;
+}
+.cf-panel-tools .cf-btn:hover {
+  border-color: var(--cf-gold);
 }
 
 /* Squarespace audit modal — full overlay with a scrollable findings card.
