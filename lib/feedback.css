@@ -109,6 +109,18 @@
 }
 .cf-btn-ghost:hover { background: transparent; border-color: var(--cf-rose); color: var(--cf-rose); }
 
+/* Destructive variant — rose accent so it reads as "this removes something". */
+.cf-btn-danger {
+  background: var(--cf-rose-tint);
+  border-color: var(--cf-rose);
+  color: var(--cf-rose);
+}
+.cf-btn-danger:hover {
+  background: var(--cf-rose);
+  border-color: var(--cf-rose);
+  color: #fff;
+}
+
 .cf-icon-btn {
   background: transparent;
   border: none;

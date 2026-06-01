@@ -80,6 +80,7 @@ Each inbox comment carries a `type` field:
   - **List edit**: the dblclick landed inside a `<ul>`/`<ol>` — the editing target is the *list*, not a single `<li>`. Diff against `new_html` to see added / removed / reordered `<li>` items.
 - **`move`** — user dragged an element to a new position among its siblings in move mode. Payload: `element` (anchor info), `parent` ({ tag, id, selector }), `from` and `to` ({ `index`, `prev_anchor`, `next_anchor` }), auto-generated `comment` like `moved "X" above "Y"`. `*_anchor` fields are compact `{ tag, id, cf_id, data_svc, data_cf_change, text_snippet }` refs of the prev/next siblings — use them to locate the source position when `cf_id` isn't persisted.
 - **`snapshot`** — user Alt-dragged a region. Payload: `region` ({ `x`, `y`, `w`, `h`, viewport coords too }), `image_path` (relative path like `feedback/snapshots/snap-<ts>-<rand>.png` — Read it with the Read tool to view), `elements[]` (up to 15 element anchors whose bounding rects intersect the captured region — structural context alongside the pixels), and the user's `comment`.
+- **`delete`** — user clicked "delete" in the element-mode popup (or queued it via shift-multi-select). The element was already removed from the live DOM client-side; the agent's job is to mirror that removal in source. Payload: `element` (anchor info — `cf_id` / `selector` / `tag` / `text_snippet` / truncated `outer_html`), `parent` ({ `tag`, `id`, `selector` }), `index` (the element's position among its parent's children at the moment of deletion), `original_outer_html` (full untruncated outerHTML so the source-side removal can be a direct text match if `cf_id` is stale).
 
 ### Handling `text-edit` comments
 
@@ -105,6 +106,18 @@ The user has visually reordered the element on the page — your job is to make 
 Edge cases:
 - If the host page's JS rebuilds the moved element's parent (e.g. an estimate panel rendered by template) the visual move was wiped on next render — the source edit is what matters.
 - If `from.index === to.index`, the user dragged but landed in the same slot — usually safe to ignore as a no-op (the library doesn't queue zero-delta moves, but a refinement might).
+
+### Handling `delete` comments
+
+The element is already gone from the live page — your job is to remove it from source so reloads stay consistent.
+
+1. Locate the element in source HTML. Try in order: `element.cf_id` (`data-cf-id="el-N"` — usually a closing match against an in-document attribute), `element.selector`, then a direct text-match against `original_outer_html` (the full untruncated outerHTML — useful when `cf_id` was session-only and not persisted to source).
+2. Remove the element. If it spans multiple lines in source, take the whole range.
+3. Don't try to fill the gap — DOM reflow handles that on the browser side. If the deletion leaves a visibly broken layout (an empty grid column, a hanging `<hr>`, etc.) the user will surface that as a follow-up comment; don't pre-emptively rewrite siblings.
+4. Add a `data-cf-change="ch-<slug>"` anchor on the **next sibling**, or on the **parent** if the deleted element was the last child. The walkthrough scrolls there so the user lands at the spot the deletion happened.
+5. Record a history entry — `title` like `Deleted the <tag> "<short snippet>"`; `description` notes the parent + index so future-you can reconstruct intent.
+
+If the user deleted multiple elements in one batch, each is a separate `delete` comment in the same submission. Apply them in document order; if any pair has a parent-child relationship (the user shift-selected nested elements), the child's deletion is a no-op once the parent is gone — skip it instead of erroring.
 
 ### Handling `snapshot` comments
 

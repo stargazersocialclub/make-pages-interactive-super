@@ -11,6 +11,16 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **Element delete action** — new "🗑 delete" button in the element-mode
+  popup. Removes each selected element from the DOM immediately (siblings
+  reflow naturally; no slot preservation) and queues one `type: "delete"`
+  comment per top-level removed element with `parent`, `index`, and full
+  untruncated `original_outer_html`. Nested selections are deduped so a
+  shift-selected parent + child only queues the parent. The in-list
+  trashcan on a `delete` row restores the element AND drops the entry —
+  delete has no on-element marker (the element is gone) so the trashcan
+  is the only undo path. Other comment types keep their existing trashcan-
+  drops-without-reverting behavior.
 - **Inline editor link / unlink buttons** (toolbar row 1). Link prompts for a
   URL; protocol-less inputs auto-prefix `https://`; an empty URL removes the
   link; `javascript:` / `data:` / `vbscript:` / `file:` schemes are rejected.

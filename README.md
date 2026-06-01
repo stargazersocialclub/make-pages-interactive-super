@@ -44,6 +44,13 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 - **html2canvas is bundled locally** at `lib/html2canvas.min.js` (~200 KB) and lazy-loaded from `/lib/` on first snapshot. No CDN fetch at use time; works fully offline once the skill is installed.
 - Server endpoint: `POST /snapshot/<id>.png` validates the filename, caps at 10 MB, writes to `feedback/snapshots/<id>.png` so the agent can `Read` it directly.
 
+### Element delete
+- Press **`E`** to enter element mode, click any block (or shift-click several), then hit the rose **🗑 delete** button in the popup. Each selected element is immediately removed from the live DOM — surrounding siblings reflow naturally; we don't try to preserve the slot.
+- Nested selections are deduped: if you shift-selected a parent and its child, only the parent gets queued. The child would've disappeared with the parent anyway.
+- Queues one `type: "delete"` comment per top-level removed element, carrying `parent`, `index`, and `original_outer_html` so the source-side removal can find the right span and the undo path can re-insert.
+- **Undo**: the in-list trashcan on a `delete` row restores the element AND drops the entry. (For other types the trashcan only drops the entry; revert lives in the marker menu. Delete has no marker — the element is gone — so the trashcan does double duty.)
+- Layout cascade (`:nth-child` rules, fixed grid columns) is whatever the host page's CSS already encodes; we don't try to fix it. If the deletion produces an obviously broken layout the user can comment again.
+
 ### Pending list & history
 - Per-row diff rendering for `text-edit` (rose strikethrough / leaf-green added), `style edit` (prop-by-prop diff like `font-size: 13px → 22px`), `move` (`parent#id: position 3 → 0`), and `snapshot` (thumbnail + element count). All in the dark-skin palette — no light-mode color leaks.
 - **Per-element pending markers** — a gold ✎ badge floats on every element with a queued change (✎ for text/style edits, 💬 for selection/element comments, ↕ for moves). Hover the marker to outline its target. Click for a refine/remove menu. Void elements (`<img>`, `<video>`, etc.) get a floating marker pinned to the page in document coords so it scrolls with the content.
@@ -215,6 +222,7 @@ The `feedback/` directory (inbox / history / snapshots) is left alone — delete
 | `text-edit` | Double-click, edit, ⌘↵ or click-out | `elements[0]`, `original_text` / `new_text`, `original_html` / `new_html`, `original_outer_html` / `new_outer_html` |
 | `move` | Drag-and-drop reorder in move mode | `element`, `parent`, `from { index, prev_anchor, next_anchor }`, `to { ... }`, auto-generated `comment` |
 | `snapshot` | Alt-drag a region | `region { x, y, w, h, viewport_x, viewport_y }`, `image_path` (`feedback/snapshots/<id>.png`), `elements[]` (intersecting), `comment` |
+| `delete` | "🗑 delete" in the element-mode popup | `element` (anchor), `parent { tag, id, selector }`, `index` (position in parent at deletion), `original_outer_html` (full untruncated) |
 
 All comments carry a stable `id` (and a stable `cf_id` selector for the targeted element) and a timestamp. The library batches client-side and submits as a single POST per `submit batch` action so Claude responds to a coherent set rather than firing on every keystroke.
 
