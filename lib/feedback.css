@@ -887,6 +887,8 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row {
   gap: 8px;

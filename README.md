@@ -17,10 +17,12 @@ This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `ser
 - **Cancel** restores the original element (full outer HTML — class, style, alignment attributes, everything snaps back).
 - **Click outside** the editing element auto-submits the edit (or exits cleanly if no changes).
 - **Double-click a different element** while one is open swaps the target — the current edit commits first.
-- **Toolbar** (row 1): Bold · Italic · UL · OL · ←/center/→ align · UPPER / lower / Title case · cancel · confirm (⌘↵).
+- **Toolbar** (row 1): Bold · Italic · UL · OL · **link / unlink** · ←/center/→ align · UPPER / lower / Title case · cancel · confirm (⌘↵).
 - **Toolbar** (row 2): font family (curated list + page-detected web fonts) · numeric font-size · color · bg · reset.
-- **Toolbar** (row 3): border weight · border color · border radius · `?` quick guide. Number inputs have custom ▲/▼ spinners that match the dark-gold skin.
-- **Selection-aware** — selecting text inside the editing element repopulates the font / size / color controls from the element under the caret. Border + radius are element-scoped and only populate at edit start.
+- **Toolbar** (row 3): border weight · border color · border radius · **padding** · `?` quick guide. Number inputs have custom ▲/▼ spinners that match the dark-gold skin.
+- **Link** prompts for a URL — protocol-less inputs auto-prefix `https://`; an empty URL removes the link; `javascript:` / `data:` / `vbscript:` / `file:` schemes are rejected. If the caret sits inside an existing `<a>`, the prompt prefills the current href.
+- **Selection-aware** — selecting text inside the editing element repopulates the font / size / color controls from the element under the caret. Border, radius, and padding are element-scoped and only populate at edit start.
+- **List propagation** — when the editing target is a `<ul>` / `<ol>`, text props (font-family / size / color / weight / style / letter-spacing / line-height / text-transform / text-align) push directly to each `<li>` so child-level CSS like `.list li { font-size: 14px }` doesn't beat the change.
 - **⌘B / ⌘I** keep working inside the editable.
 - **Corner-handle resize** (4 handles, TL/TR/BL/BR). Snaps the dragged edges to nearby element edges within ~8 px (siblings + parent + grandparent). When **snap-to-grid** is on, snaps to the nearest 24 px grid line as well.
 - **Style-only diff** — the pending row shows `font-size: 13px → 22px`, `+ <b>`, etc., even when text didn't change.

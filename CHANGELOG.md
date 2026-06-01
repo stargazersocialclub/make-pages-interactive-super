@@ -9,6 +9,25 @@ this project uses [semantic versioning](https://semver.org/).
 
 Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
+### Added
+
+- **Inline editor link / unlink buttons** (toolbar row 1). Link prompts for a
+  URL; protocol-less inputs auto-prefix `https://`; an empty URL removes the
+  link; `javascript:` / `data:` / `vbscript:` / `file:` schemes are rejected.
+  If the caret sits inside an existing `<a>`, the prompt prefills the
+  current href.
+- **Padding control** in toolbar row 3 — single-value numeric input applies
+  to all four sides via the standard custom ▲/▼ spinner.
+- **List-li text-style propagation** — when the editing target is a
+  `<ul>`/`<ol>`, text-scoped props (font-family / font-size / color / font-
+  weight / font-style / letter-spacing / line-height / text-transform /
+  text-align) are pushed directly onto every child `<li>` so child-level
+  CSS like `.incl li { font-size: 14px }` can't beat the change. Element-
+  scoped props (border / radius / padding / background) stay on the list.
+- **Toolbar row wrap** — `.cf-edit-toolbar-row` now `flex-wrap`s with a
+  6 px row-gap so the wider row 1 (with link/unlink added) doesn't overflow
+  on narrow viewports.
+
 ### Fixed
 
 - **Snapshot drag drifts on scroll** — snapshot rect corners are now stored
