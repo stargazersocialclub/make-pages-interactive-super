@@ -45,6 +45,16 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **Line-height control** in toolbar row 2 (labeled `line`). Numeric
+  input with step 0.05 from 0.8 to 3.0; emits a unitless line-height so
+  children scale with their own font-size. populateTextStyleControls
+  reads the current value by dividing computed line-height by computed
+  font-size on edit start. Added to CF_LIST_PROPAGATE_PROPS so it pushes
+  to every `<li>` when the editing target is a list, and to
+  CF_RESET_PROPS so the Reset button clears it. Also added
+  `background-color` to the list-propagation set (was missing — page
+  CSS like `.list li { background: var(--card) }` would beat an
+  inherited value the same way font-size does).
 - **`⌘Z` / Ctrl+Z to undo the most recent pending entry**. Pops the last
   item off the pending list, reverts its visual change via the same
   per-type revert path as the marker-menu remove (text-edits restore
