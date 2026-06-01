@@ -49,6 +49,65 @@
 }
 .cf-launcher.cf-dragging { transition: none; cursor: grabbing; opacity: 0.85; }
 .cf-launcher.cf-dragging > .cf-btn-primary { cursor: grabbing; }
+
+/* Floating "clear all" pill — sits above the launcher pill by default;
+   flips below for top-anchored corners. Rose accent so it reads as
+   destructive at a glance. Hidden by default; shown via JS only when
+   there are pending comments AND the panel is closed. */
+.cf-clear-all-float {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  top: auto;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--cf-rose-tint);
+  border: 1px solid var(--cf-rose);
+  color: var(--cf-rose);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.cf-clear-all-float.cf-visible { display: inline-flex; }
+.cf-clear-all-float:hover {
+  background: var(--cf-rose);
+  color: #1a0a0a;
+  transform: translateX(-50%) translateY(-1px);
+}
+.cf-clear-all-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  padding: 0 5px;
+  height: 16px;
+  background: var(--cf-rose);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.cf-clear-all-float:hover .cf-clear-all-count {
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+}
+/* Flip below the pill when the launcher is in a top corner. */
+#claude-feedback-root[data-corner="tl"] .cf-clear-all-float,
+#claude-feedback-root[data-corner="tr"] .cf-clear-all-float {
+  bottom: auto;
+  top: calc(100% + 8px);
+}
 #claude-feedback-root[data-corner="tl"] .cf-launcher { top: 18px;    bottom: auto; left: 18px; right: auto; }
 #claude-feedback-root[data-corner="tr"] .cf-launcher { top: 18px;    bottom: auto; right: 18px; left: auto; }
 #claude-feedback-root[data-corner="bl"] .cf-launcher { bottom: 18px; top: auto;    left: 18px; right: auto; }
