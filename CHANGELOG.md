@@ -45,6 +45,14 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **`⌘Z` / Ctrl+Z to undo the most recent pending entry**. Pops the last
+  item off the pending list, reverts its visual change via the same
+  per-type revert path as the marker-menu remove (text-edits restore
+  outerHTML, deletes re-insert). Bails inside contenteditable
+  (`editingEl === document.activeElement`) and inside any
+  `isTypingTarget` so the browser's native character-level undo still
+  runs during text editing. Toast shows the dropped type and the
+  remaining pending count.
 - **Copy page HTML button** in the panel header (📋 copy HTML). Clones
   the live `<html>`, strips everything the feedback library injected —
   `#claude-feedback-root`, the `/lib/feedback.{css,js}` link/script tags,
