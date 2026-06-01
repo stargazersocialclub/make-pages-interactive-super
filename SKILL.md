@@ -158,9 +158,9 @@ Strips both tags from every `*.html`. Leaves the `feedback/` directory alone (de
 ├── docs/                   # design / scope notes (e.g. viewport-switcher v0.3)
 ├── lib/
 │   ├── feedback.js         # client library: selection, element mode, snapshot
-│   │                       # mode, inline editor (text + image + container),
-│   │                       # grid overlay + snap-to-grid, draggable launcher,
-│   │                       # pending list with per-element markers + marker menu,
+│   │                       # mode, inline editor (text + image), grid overlay
+│   │                       # + snap-to-grid, draggable launcher, pending list
+│   │                       # with per-element markers + marker menu,
 │   │                       # quick-guide overlay, history walkthrough
 │   ├── feedback.css        # styles (scoped under #claude-feedback-root)
 │   ├── html2canvas.min.js  # vendored html2canvas 1.4.1, lazy-loaded on first

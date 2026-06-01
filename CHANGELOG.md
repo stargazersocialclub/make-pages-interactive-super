@@ -11,6 +11,19 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Removed
 
+- **Container resize (Shift + double-click)** — parked alongside the move
+  feature for the v0.3 heavy fork. Same suspected pointer-event
+  entanglement (the dblclick dispatch + corner-resize handle pointermove
+  + element-select click could all fire on the same gesture). Surgery
+  scope: `findContainerForResize`, `startContainerEdit`, the
+  `e.shiftKey` branch in `onDblClick`, the `cf-container-edit-mode`
+  body class + `.cf-editing-container` outline rule, the
+  `cf-editing-container` class strip in `exitEditMode` and
+  `cleanOuterHtml`, the SESSION_CLASSES entry in `getCleanPageHtml`,
+  the quick-guide overlay's "container" line, and the Shift+dblclick
+  mention in the pending hint and README. Plain double-click still
+  resizes images / videos / canvases / pictures; element mode (E) +
+  delete still covers structural removal.
 - **Drag-and-drop reorder (move mode)** — entire feature parked for the
   v0.3 heavy fork. User reported a suspected pointer-event collision
   with the element selector and the inline-editor resize handles, and

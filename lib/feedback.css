@@ -888,22 +888,6 @@ body.cf-image-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
   cursor: default !important;
 }
 
-/* Container-edit mode (Shift + double-click). Hides the format buttons
-   (B / I / lists / alignment / case) since containers don't usually want
-   character-level toggles, but keeps both style rows visible — the font
-   / color / bg row is where the most-requested container edits live (bg,
-   tint, padding, border). */
-body.cf-container-edit-mode .cf-edit-toolbar .cf-edit-fmt,
-body.cf-container-edit-mode .cf-edit-toolbar .cf-edit-case,
-body.cf-container-edit-mode .cf-edit-toolbar .cf-edit-toolbar-sep {
-  display: none;
-}
-.cf-editing-container {
-  outline: 2px dashed var(--cf-gold) !important;
-  outline-offset: 4px;
-  cursor: default !important;
-}
-
 /* ---------------- Inline text-edit (double-click) ---------------- */
 .cf-editing-target {
   outline: 2px dashed var(--cf-gold) !important;

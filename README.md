@@ -4,7 +4,7 @@ A heavier fork of [paraschopra/make-pages-interactive](https://github.com/parasc
 
 Highlight text, click an element, double-click to edit in place, drag to reorder, hold `Alt` + drag to snapshot a region — every comment lands in a local JSONL inbox that Claude reads and responds to by editing the source pages. The page surfaces a "changes ready" banner; press `R` to reload and see a walkthrough of what changed.
 
-This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `server.py`) and adds inline text editing, container resize via Shift+double-click, region screenshots, a grid overlay + snap-to-grid, per-element pending markers with a refine/remove action menu, element-mode delete, a quick-guide overlay, a draggable corner-anchored launcher, an opaque-dark gold-accent skin, and a lot of editor polish. All commenting goes through the same inbox.
+This fork keeps the original 3-file shape (`feedback.js` / `feedback.css` / `server.py`) and adds inline text editing, region screenshots, a grid overlay + snap-to-grid, per-element pending markers with a refine/remove action menu, element-mode delete, a quick-guide overlay, a draggable corner-anchored launcher, an opaque-dark gold-accent skin, and a lot of editor polish. All commenting goes through the same inbox.
 
 ---
 
@@ -134,7 +134,7 @@ The skill is still **just three files in `lib/`**, plus glue:
 
 | File | Role |
 |------|------|
-| `lib/feedback.js` | Client library injected into every page. Selection, element + snapshot modes, inline text editing, container resize (Shift+dblclick), draggable launcher pill, pending list, history walkthrough. |
+| `lib/feedback.js` | Client library injected into every page. Selection, element + snapshot modes, inline text editing (text + image), draggable launcher pill, pending list, history walkthrough. |
 | `lib/feedback.css` | Styles for the comment UI (scoped under `#claude-feedback-root`). |
 | `lib/html2canvas.min.js` | Bundled html2canvas 1.4.1, lazy-loaded by `feedback.js` only when a snapshot is first taken. |
 | `lib/server.py` | ~300-line stdlib-only HTTP server. Serves the page directory, accepts comment POSTs at `/feedback`, snapshot PNG uploads at `/snapshot/<id>.png`, and routes `/lib/*` to the skill's own `lib/` directory. Auto-shuts-down on parent death or 10 min idle. |
