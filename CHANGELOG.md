@@ -45,6 +45,31 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **🔍 Squarespace audit button** in the panel header. Runs five checks
+  against the live page targeting the most common Code Injection
+  conflicts:
+  1. **Global CSS selectors** — `body`, `html`, `*` rules in any
+     `<style>` block bleed into the Squarespace page wrapper.
+  2. **Naked tag selectors** — `h1` / `h2` / `h3` / `p` / `a` /
+     `button` / `input` / etc. without an ancestor scope collide with
+     Squarespace's site typography.
+  3. **Inline styles missing `!important`** for cascade-loser props
+     (`color`, `font-family`, `background`, `background-color`) —
+     Squarespace's stylesheet wins without it.
+  4. **Footer collision** — `position: fixed` elements with `bottom`
+     within 60 px of the viewport bottom (where the Squarespace footer
+     / branding bar sits in many templates).
+  5. **Viewport units** — `100vw` / `100vh` overflow the constrained
+     Squarespace container.
+  Findings open in a modal with severity color-coding (rose / gold /
+  leaf), per-item checkboxes, and a snippet of the offending selector
+  / element. Two critical decisions surface as form inputs at the top:
+  the **root id** (auto-detected from the page, e.g.
+  `ssc-pricing-root`) used to scope global + naked-tag rewrites, and
+  the **footer lift offset** (default 80 px) applied to fixed elements.
+  Apply queues each accepted fix as a `text-edit` in pending — they go
+  through the standard submit / revert flow, so the user can roll back
+  any individual fix via the marker menu or ⌘Z.
 - **Line-height control** in toolbar row 2 (labeled `line`). Numeric
   input with step 0.05 from 0.8 to 3.0; emits a unitless line-height so
   children scale with their own font-size. populateTextStyleControls

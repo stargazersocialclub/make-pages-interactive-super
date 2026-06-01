@@ -1193,11 +1193,168 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
 /* Copy-HTML button — sits next to the help / close buttons in the panel
    header. Subtle outlined style so it doesn't compete with the gold help
    pill; tooltip explains what gets copied. */
-.cf-copy-html-btn {
+.cf-copy-html-btn,
+.cf-sqs-audit-btn {
   padding: 5px 10px;
   font-size: 11px;
   letter-spacing: 0.04em;
   margin-right: 4px;
+}
+
+/* Squarespace audit modal — full overlay with a scrollable findings card.
+   Same shell as the help overlay but with its own form controls. */
+.cf-sqs-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 2147483646;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+.cf-sqs-modal.cf-visible { display: flex; }
+.cf-sqs-inner {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 64px);
+  background: var(--cf-surf-mid);
+  color: var(--cf-text);
+  border: 2px solid var(--cf-gold-deep);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 0 0 4px rgba(199, 162, 78, 0.18),
+    0 22px 64px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cf-sqs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--cf-line);
+}
+.cf-sqs-header strong {
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  color: var(--cf-gold);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.cf-sqs-body {
+  padding: 14px 22px 18px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.cf-sqs-intro {
+  margin: 0 0 14px;
+  color: var(--cf-text-2);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.cf-sqs-decision {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--cf-line-strong);
+  border-radius: 8px;
+}
+.cf-sqs-decision-label {
+  display: block;
+  font-size: 11px;
+  color: var(--cf-gold-deep);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.cf-sqs-decision-label small {
+  display: block;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--cf-text-3);
+  margin-top: 2px;
+}
+.cf-sqs-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cf-line-strong);
+  color: var(--cf-text);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  box-sizing: border-box;
+}
+.cf-sqs-input:focus { outline: none; border-color: var(--cf-gold); }
+.cf-sqs-section {
+  margin-top: 16px;
+  border-left: 3px solid var(--cf-line-strong);
+  padding-left: 10px;
+}
+.cf-sqs-sev-critical { border-left-color: var(--cf-rose); }
+.cf-sqs-sev-warning  { border-left-color: var(--cf-gold-deep); }
+.cf-sqs-sev-info     { border-left-color: var(--cf-leaf); }
+.cf-sqs-section h4 {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  color: var(--cf-text);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cf-sqs-section h4 code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11.5px;
+}
+.cf-sqs-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: var(--cf-gold-tint);
+  color: var(--cf-gold);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+.cf-sqs-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.cf-sqs-item input[type="checkbox"] {
+  margin-top: 2px;
+  accent-color: var(--cf-gold);
+  cursor: pointer;
+}
+.cf-sqs-item-text { flex: 1; min-width: 0; }
+.cf-sqs-item-text code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.cf-sqs-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--cf-line);
 }
 .cf-help-btn:hover {
   color: #1a120a;
