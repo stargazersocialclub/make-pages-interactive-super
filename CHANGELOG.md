@@ -45,31 +45,47 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
-- **🔍 Squarespace audit button** in the panel header. Runs five checks
-  against the live page targeting the most common Code Injection
-  conflicts:
-  1. **Global CSS selectors** — `body`, `html`, `*` rules in any
-     `<style>` block bleed into the Squarespace page wrapper.
-  2. **Naked tag selectors** — `h1` / `h2` / `h3` / `p` / `a` /
-     `button` / `input` / etc. without an ancestor scope collide with
-     Squarespace's site typography.
-  3. **Inline styles missing `!important`** for cascade-loser props
-     (`color`, `font-family`, `background`, `background-color`) —
-     Squarespace's stylesheet wins without it.
-  4. **Footer collision** — `position: fixed` elements with `bottom`
-     within 60 px of the viewport bottom (where the Squarespace footer
-     / branding bar sits in many templates).
-  5. **Viewport units** — `100vw` / `100vh` overflow the constrained
-     Squarespace container.
-  Findings open in a modal with severity color-coding (rose / gold /
-  leaf), per-item checkboxes, and a snippet of the offending selector
-  / element. Two critical decisions surface as form inputs at the top:
-  the **root id** (auto-detected from the page, e.g.
-  `ssc-pricing-root`) used to scope global + naked-tag rewrites, and
-  the **footer lift offset** (default 80 px) applied to fixed elements.
-  Apply queues each accepted fix as a `text-edit` in pending — they go
-  through the standard submit / revert flow, so the user can roll back
-  any individual fix via the marker menu or ⌘Z.
+- **🔍 Squarespace audit button** in the panel header — eight-check pass
+  aligned with the consolidated `squarespace-collision-audit` skill:
+  1. **Global CSS selectors** — `body`, `html`, `*` rules bleed into
+     the Squarespace page wrapper.
+  2. **Naked tag + SQ-chrome selectors** — `h1` / `p` / `img` /
+     `header` / `footer` / `section` etc. PLUS `.site-header`,
+     `.site-footer`, `#header`, `#footer`, `#site-wrapper`.
+  3. **Multiple `<h1>` elements** — SEO + accessibility; one H1 per
+     page is the rule, the modal offers a per-H1 dropdown to rewrite
+     the duplicate(s) as `<h2>`, `<h3>`, or `<p>`.
+  4. **`z-index` in the 100–1000 nav range** — collides with
+     Squarespace's header / mobile-nav stack; rewritten to `99`.
+  5. **`--tweak-*` CSS variables** — clash with Squarespace's
+     internal style tokens; renamed to `--ssc-*`.
+  6. **Re-imported site fonts** (`@import` of `fonts.googleapis.com`
+     / `fonts.adobe.com` / `use.typekit.net`) — the SQ site loads
+     fonts globally; the `@import` line is removed.
+  7. **Missing `box-sizing: border-box` reset** on any declared
+     `#ssc-*` scope — without it, padding widens children past the
+     embed and triggers overflow. Reset prepended to the host
+     `<style>` block.
+  8. **Inline styles missing `!important`** — contextual, only flagged
+     when no scoped root is detected (the prior auto-flag produced 38
+     false positives on JS-generated descendants of a `#ssc-*` root in
+     a single Bar Calculator audit run).
+  Critical decisions: **root id** (auto-detected by looking for the
+  outermost `#ssc-*` id directly under `<body>`; empty = ask), and
+  per-H1 rewrite-target tag.
+  Findings open in a severity-color-coded modal (rose critical /
+  gold warning / leaf info). Apply queues each accepted fix as a
+  `text-edit` in pending — they go through the standard submit /
+  marker-menu revert / ⌘Z flow.
+  Dropped from the prior version: footer-collision and viewport-units
+  checks. Footer collision was misdiagnosed (backdrops like full-page
+  starfield containers got flagged as UI overlaps with the SQ footer);
+  footer issues actually come from SQ editor content deletion or
+  `display: none` on `footer`/`.site-footer` selectors, both caught
+  by check 2 + the documented knowledge base. Viewport units don't
+  cause Squarespace overflow on this site — `body { overflow-x: hidden }`
+  in Custom CSS absorbs them, and `100vh` is often desired for hero
+  sections.
 - **Line-height control** in toolbar row 2 (labeled `line`). Numeric
   input with step 0.05 from 0.8 to 3.0; emits a unitless line-height so
   children scale with their own font-size. populateTextStyleControls

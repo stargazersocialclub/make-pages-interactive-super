@@ -1356,6 +1356,18 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
   padding: 12px 18px;
   border-top: 1px solid var(--cf-line);
 }
+/* Inline select inside an H1-finding row — picks the rewrite target tag */
+.cf-sqs-inline-select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cf-line-strong);
+  color: var(--cf-text);
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: 0 2px;
+  font-size: 11.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+.cf-sqs-inline-select:focus { outline: none; border-color: var(--cf-gold); }
 .cf-help-btn:hover {
   color: #1a120a;
   filter: brightness(1.06);
