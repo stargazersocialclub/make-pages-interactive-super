@@ -40,6 +40,19 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Fixed
 
+- **Resize on a flex / grid child redistributes space across siblings** —
+  setting inline `width: Xpx` on an element inside a flex row / grid track
+  forced the layout to reallocate the remaining space to siblings, so
+  dragging one image's corner shrank the others and the resize hit an
+  invisible wall when a sibling reached its min-content. On the first
+  resize-drag of an edit session, every constrained-layout sibling now
+  gets its current rect snapshot and pinned via `width` / `height` /
+  `flex: 0 0 auto` so the target's resize feels independent. Submit
+  captures the pinned siblings as separate text-edits so the asymmetric
+  layout persists on reload; cancel restores siblings to their pre-pin
+  state. The target's max size is bounded by container width − sum of
+  pinned sibling widths (overflow is clipped by the parent) — when the
+  user wants to push past that, they can pin a sibling smaller first.
 - **Snapshot drag drifts on scroll** — snapshot rect corners are now stored
   in document coords instead of viewport coords, so the rect tracks the
   content the user pointed at even if the page scrolls mid-drag.
