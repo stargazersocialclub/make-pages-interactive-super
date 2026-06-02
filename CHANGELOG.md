@@ -7,7 +7,11 @@ this project uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
+Holding ground for the next batch.
+
+## [v0.2.1] — 2026-06-02
+
+Post-v0.2.0 stability + feature pass before the v0.3 viewport-switcher fork. Adds the Squarespace audit (with a scope-root gate), a palette-aware color popover, a style paintbrush, the comment-while-editing button, history-undo on the last 5 changes, the image-URL swap, and a refactored selection-frame overlay system. Also lands a feature backlog (BACKLOG.md) for what's next.
 
 ### Removed
 
@@ -45,6 +49,118 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Added
 
+- **🔍 Squarespace audit scope-root gate** — before running the eight
+  checks, the audit walks `document.body.children` for any `id="ssc-*"`
+  wrapper. If none is present, the audit pauses and asks the user (in a
+  modal with the page title + path) whether to wrap content under a
+  suggested `ssc-<slug>-embed` id (auto-derived from the page title or
+  filename) and re-audit, or run unscoped anyway, or cancel. Picking
+  wrap POSTs a `source: "sqs-audit-scope-request"` comment so the agent
+  performs the structural rewrite. Reason: the Bar Calculator audit
+  without this gate produced 55 false-positive inline-`!important`
+  findings — all targeting JS-generated DOM that source edits couldn't
+  reach. `sqsHasScopedRoot()` checks the live DOM first (catches pages
+  whose CSS is in a linked stylesheet so the inline-`<style>` scan
+  would miss the wrapper) and only falls back to inline-style
+  textContent scanning if the DOM walk turns up nothing.
+- **9th audit check: fixed-position full-viewport backdrops** — rules
+  under a `#ssc-*` root with `position: fixed` + full-viewport coverage
+  (`inset: 0`, four-sided zero, or `100vw × 100vh`) + low z-index
+  (< 100) + non-modal selector get flagged. These tile across the SQ
+  footer at deploy time. Apply rewrites `position: fixed` →
+  `position: absolute` so the backdrop is anchored to the scoped
+  wrapper (`position: relative` on the root is the manual partner step
+  the audit notes but doesn't auto-apply). Modals are skipped via
+  selector substring (`modal`/`overlay`/`drawer`/`popup`/`dialog`/
+  `toast`/`tooltip`) and z-index threshold.
+- **Selection-frame overlay system** — `.cf-elem-hover` and
+  `.cf-elem-selected` no longer mutate the target element's `border` /
+  `outline` / `box-shadow`. Instead, a position-fixed overlay layer
+  (`#cf-overlays` inside `#claude-feedback-root`) draws one frame
+  per state. Frames mirror their target's bounding box via an rAF loop
+  that auto-stops when no frames are active. Solves three problems
+  the prior class-based approach had: outline / border getting clipped
+  by `overflow: hidden` ancestors (`.card-featured` did this); paint
+  conflict with the element's own border styling; layout shift when
+  border-box-sizing was enforced for the class swap. Multi-select shows
+  multiple frames at once; each carries a "selected" label inside its
+  top-left corner. `.cf-editing-target` (the inline-text-edit affordance)
+  is intentionally still class-based — single-element edit mode doesn't
+  benefit from the overlay layer.
+- **`MutationObserver` for dynamic anchor assignment** — `assignAnchors`
+  installs a body-subtree observer that assigns `data-cf-id` to any
+  newly-added commentable element. Solves the JS-rebuilt-DOM problem:
+  Bar Calculator's `calculate()` rewrites `#metricGrid` via `innerHTML`
+  every press, so `.metric` children were anchorless and the only
+  selectable target was the parent grid. The observer catches them.
+  Counter is shared between the initial pass and the observer so dynamic
+  anchors keep counting from where the static pass stopped.
+- **Expanded `COMMENTABLE_CLASS_SUBSTRINGS`** — added
+  `metric`/`stat`/`tile`/`item`/`panel`/`cell`/`field`/`row` to the
+  substring list so stat-unit cards are commentable on their own
+  instead of getting walked-past in `findCommentableAncestor`. Pairs
+  with the MutationObserver above to fix the metric-grid drill-down
+  complaint.
+- **↺ undo on the last 5 history changes** — each of the most recent 5
+  rendered history rows gets a small undo pill in the top-right. Click
+  prompts a confirm, then POSTs a `source: "history-undo-request"`
+  comment so the agent reverses the source edit and appends a new
+  history batch documenting the revert. Older entries stay
+  click-to-focus only — capped at 5 to avoid tempting deep-history
+  rollbacks that later edits may have built on top of. The undo
+  request asks the agent to surface conflicts when later edits touched
+  the same elements.
+- **📷 url button on the image edit toolbar** — shown only when
+  `body.cf-image-edit-mode` is on (via the new `.cf-img-only` class).
+  Click prompts for a new URL pre-filled with the current `src`, sets
+  `editingEl.src`, and reflows the toolbar position. The src change
+  flows through the existing text-edit outer-html diff pipeline so it
+  becomes a pending entry on confirm.
+- **Color picker popover with embedded 3-slot palette** — the two
+  native `<input type="color">` elements in the toolbar were replaced
+  with custom color-swatch buttons (`#cf-edit-color-btn` /
+  `#cf-edit-bg-btn`) that open a custom popover when clicked. The
+  popover shows three page-detected swatches at the top + a
+  `custom color…` button that triggers the hidden native picker.
+  Swatch click applies to whichever target the popover was opened from
+  (text color or background); right-click on a swatch opens a hidden
+  color input to edit that slot's value (persisted per-pathname in
+  `localStorage` under `cf:palette:${location.pathname}`). Swatch
+  detection counts text color, background-color, AND average color of
+  background-image gradients (weighted by alpha), all across the whole
+  page, excluding pure `#ffffff` and `#000000` as likely defaults.
+- **🖌 style paintbrush button** in toolbar row 3 (border row, so it
+  stays visible in both text- and image-edit modes). Click captures the
+  current edit element's computed styles via the
+  `CF_PAINT_PROPS_BASE` set (font-family, font-size, line-height,
+  color, background-color, border-width / style / color, border-radius,
+  padding), exits edit mode, and arms `body.cf-paintbrush-mode`. Next
+  click on a commentable element pastes the captured styles as inline
+  `!important` declarations and queues a `text-edit` pending entry with
+  `comment: "[paintbrush] applied captured styles"`. Sticky: stays armed
+  after each paste until Esc or the button is clicked again. Img sources
+  capture a restricted border-only set (`border-width` / `border-style` /
+  `border-color` / `border-radius`); cross-kind paints (img → text or
+  text → img) no-op with a toast.
+- **💬 comment button on the edit toolbar** — sits next to cancel /
+  confirm in row 1, visible in both text- and image-edit modes (doesn't
+  carry the `.cf-edit-fmt` / `.cf-edit-case` classes that get hidden in
+  image mode). Click auto-commits any in-flight changes via
+  `commitOrExitCurrentEdit()`, then opens the existing element-comment
+  editor pointing at the same element. Lets the user leave a note about
+  an element in addition to the visual edit they just made, without
+  needing to enter element-select mode first.
+- **BACKLOG.md** — feature design notes for what's next: ✨ generate
+  more text (LLM-assisted authoring with server-side proxy + preview
+  panel), ⇅ drag-and-drop reorder (grip-handle-only redesign to avoid
+  the pointer-event collisions that killed the parked v0.2 version),
+  ➕ +element (curated palette + reference-element + position picker
+  + new `add` comment type), 🗂 layer manager (read-only DOM tree
+  panel filtered to commentable elements, live-updating via the same
+  MutationObserver as the anchor system). Each entry follows the same
+  shape: what it does, non-negotiable constraints, options worth
+  exposing, recommended MVP cut, open questions. Closes with a
+  suggested implementation order.
 - **🔍 Squarespace audit button** in the panel header — eight-check pass
   aligned with the consolidated `squarespace-collision-audit` skill:
   1. **Global CSS selectors** — `body`, `html`, `*` rules bleed into
@@ -146,6 +262,26 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Fixed
 
+- **Per-pending "remove" button now reverts text-edits, not just deletes** —
+  the in-list `✗` button previously only called `revertCommentVisual()`
+  when `c.type === "delete"`, leaving text-edit visuals stuck on the
+  page after their pending row was dropped. The intent was "use the
+  on-element marker menu's remove for text-edits" but the marker isn't
+  an obvious affordance; the trashcan now reverts both types so ⌘Z,
+  marker menu, in-list ✗, and clear-all all behave the same way.
+- **Element selector now drills into JS-rendered DOM** — combination of
+  the expanded `COMMENTABLE_CLASS_SUBSTRINGS` and the new
+  `MutationObserver` (see Added). Before: clicking inside a JS-rebuilt
+  metric grid selected the whole `#metricGrid` because the inner
+  `.metric` divs had no `data-cf-id` AND `.metric` wasn't in the
+  commentable predicate. Now: each metric card is its own selectable
+  target with its own cf-id assigned the moment the JS inserts it.
+- **Audit root-id auto-detect no longer matches substrings** —
+  `sqsGuessRootId()` walks `document.body.children` for `id="ssc-*"`
+  and returns the outermost match (or empty if none). The prior
+  heuristic matched substrings like "wrap" / "page" / "main" and
+  picked `#sig1wrap` (a 50-px-wide dropdown wrapper) on Bar Calculator
+  — would have killed every styled rule.
 - **Resize on a flex / grid child redistributes space across siblings** —
   setting inline `width: Xpx` on an element inside a flex row / grid track
   forced the layout to reallocate the remaining space to siblings, so
@@ -192,6 +328,20 @@ Post-v0.2.0 stability + doc pass before the v0.3 viewport-switcher fork.
 
 ### Changed
 
+- **Audit scope-pass: `html { … }` now rewrites to `#<rootId>`** instead
+  of being left alone. The prior guidance said html-level rules
+  (`scroll-behavior`, etc.) should stay at html level, but the audit's
+  runtime detector flags them as global anyway, and in SQ Code Block
+  context any `html {}` rule does bleed into the host site's html
+  element. Updated in both the in-editor JS audit and the consolidated
+  `squarespace-collision-audit` SKILL.md.
+- **Palette swatch detection rewritten** — `detectPageColors()` now
+  scans the whole page, not just elements with direct text. Counts:
+  text color (when the element has direct text), background-color
+  (when not transparent), and the average color of any background-image
+  gradient (weighted by alpha across rgb/rgba tokens). Excludes pure
+  white (`#ffffff`) and pure black (`#000000`) from candidates since
+  those tend to be CSS defaults. Returns top 3 by occurrence.
 - **Pending-list inline styles migrated to dark-skin tokens** — light-mode
   literals (rust-orange `#b14000`, beige diff cards, white `#ddd` image
   borders) replaced with `.cf-pq-*` classes scoped under the dark palette.
