@@ -1,6 +1,6 @@
 """
 Inject (or remove) the Claude Feedback library tags in every *.html file in a
-directory. Also creates feedback/inbox.jsonl and feedback/history.json so the
+directory. Also creates feedback/inbox.jsonl, feedback/history.json, and feedback/prompts.jsonl so the
 server has somewhere to write.
 
 Idempotent — running twice is a no-op. Files that already have the tags are
@@ -87,6 +87,9 @@ def ensure_feedback_dir(root: Path) -> None:
     history = fb / "history.json"
     if not history.exists():
         history.write_text("[]")
+    prompts = fb / "prompts.jsonl"
+    if not prompts.exists():
+        prompts.touch()
 
 
 def main() -> int:

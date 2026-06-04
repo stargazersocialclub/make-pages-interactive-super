@@ -652,8 +652,8 @@ body.cf-elem-mode {
 .cf-selection-frame {
   position: fixed;
   pointer-events: none;
-  border: 2.5px solid var(--cf-gold);
-  background: rgba(230, 203, 133, 0.10);
+  border: 2.5px solid #ff8c1a;
+  background: rgba(255, 140, 26, 0.10);
   box-sizing: border-box;
   border-radius: 2px;
   transition: opacity 0.08s linear;
@@ -661,13 +661,13 @@ body.cf-elem-mode {
 .cf-selection-frame--hover {
   border-style: dashed;
   border-width: 2px;
-  background: rgba(230, 203, 133, 0.06);
+  background: rgba(255, 140, 26, 0.06);
 }
 .cf-selection-frame-label {
   position: absolute;
   top: 2px;
   left: 2px;
-  background: linear-gradient(180deg, var(--cf-gold), var(--cf-gold-deep));
+  background: linear-gradient(180deg, #ff9c33, #d96f00);
   color: #1a120a;
   font-size: 9.5px;
   font-weight: 700;
@@ -870,6 +870,95 @@ body.cf-snapshot-armed * {
 /* "Changes ready, reload to see" — persistent top-center banner.
    Shown when new changes arrived while the user was likely on another tab.
    Title is also prefixed with 🔔 (see feedback.js). Press R to reload. */
+/* Agent-prompt card — same top-center placement as the reload banner, but
+   wider, taller, and styled as an interactive modal-card rather than a status
+   strip. Sits ABOVE the reload banner in z-index so both can coexist briefly. */
+.cf-agent-prompt {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  width: min(520px, calc(100vw - 32px));
+  background: var(--cf-surf-mid);
+  color: var(--cf-text);
+  border: 1px solid var(--cf-line-gold);
+  padding: 16px 18px 14px;
+  border-radius: 14px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(231, 209, 150, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 2147483647;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cf-agent-prompt.cf-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.cf-agent-prompt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cf-agent-prompt-label {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--cf-gold);
+  font-weight: 600;
+}
+.cf-agent-prompt-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: color 0.15s;
+}
+.cf-agent-prompt-close:hover { color: rgba(255, 255, 255, 0.9); }
+.cf-agent-prompt-text {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--cf-text);
+  white-space: pre-wrap;
+}
+.cf-agent-prompt-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cf-agent-prompt-options:empty { display: none; }
+.cf-agent-prompt-option {
+  flex: 0 1 auto;
+}
+.cf-agent-prompt-input {
+  width: 100%;
+  min-height: 56px;
+  resize: vertical;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--cf-text);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.cf-agent-prompt-input:focus { border-color: var(--cf-gold); }
+.cf-agent-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .cf-reload-banner {
   position: fixed;
   top: 16px;
@@ -1046,6 +1135,35 @@ body.cf-image-edit-mode .cf-img-only { display: inline-flex !important; }
 .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row .cf-style-lbl {
   min-width: 0;
   color: rgba(230, 203, 133, 0.78);
+}
+/* Two-line label ("line / spc") — keeps the row height matched to single-line
+   labels by tightening line-height and centering across the two lines. */
+.cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row .cf-style-lbl.cf-style-lbl-stack {
+  line-height: 1.05;
+  text-align: center;
+  font-size: 10px;
+}
+
+/* Cycle-button glyph switching — three SVG (or text) glyphs nested in a
+   single button; data-* attribute on the button picks which to show. Shared
+   pattern for halign, valign, and case cycle buttons. */
+.cf-edit-align-cycle .cf-align-glyph,
+.cf-edit-valign-cycle .cf-valign-glyph,
+.cf-edit-case-cycle .cf-case-glyph {
+  display: none;
+}
+.cf-edit-align-cycle[data-cf-align="left"]   .cf-align-left,
+.cf-edit-align-cycle[data-cf-align="center"] .cf-align-center,
+.cf-edit-align-cycle[data-cf-align="right"]  .cf-align-right,
+.cf-edit-valign-cycle[data-cf-valign="top"]    .cf-valign-top,
+.cf-edit-valign-cycle[data-cf-valign="middle"] .cf-valign-middle,
+.cf-edit-valign-cycle[data-cf-valign="bottom"] .cf-valign-bottom,
+.cf-edit-case-cycle[data-cf-case="upper"] .cf-case-upper,
+.cf-edit-case-cycle[data-cf-case="lower"] .cf-case-lower,
+.cf-edit-case-cycle[data-cf-case="title"] .cf-case-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row .cf-style-num {
   flex: 0 0 auto;

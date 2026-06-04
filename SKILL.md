@@ -139,6 +139,49 @@ python ~/.claude/skills/make-pages-interactive/scripts/update.py
 ```
 Runs `git pull --ff-only` inside the skill dir. Requires git-clone install (the script tells the user how to re-install if not).
 
+## Asking the user mid-session (agent-prompt card)
+
+When you need a decision or a piece of missing info from the user — a URL they didn't supply, confirmation on an ambiguous edit, "should this go or stay" — you can surface a card directly inside the feedback widget instead of waiting for them to come back to Claude Code. The user replies in the card; the reply lands in `inbox.jsonl` as a normal comment with `type: "agent-response"`, so your Monitor catches it.
+
+**Append a JSON line to `<dir>/feedback/prompts.jsonl`:**
+
+```json
+{
+  "id": "p-<timestamp-or-slug>",
+  "created_at": "<ISO 8601>",
+  "prompt": "Want me to backfill the lead-paragraph dimensional pins, or leave them off?",
+  "options": [
+    {"value": "backfill", "label": "Backfill them"},
+    {"value": "skip", "label": "Leave them off"}
+  ],
+  "in_response_to": ["c-..."]
+}
+```
+
+- `id` must be unique — the client tracks answered prompts by id and won't re-show one that's already been answered.
+- `prompt` is the question text. Pre-line whitespace is preserved (`white-space: pre-wrap`).
+- `options` is optional. With it, the card renders quick-reply buttons that submit instantly. Without it, the card shows a freeform textarea + send button (⌘↵ to send).
+  - Each option can be a string (used as both value + label) or `{value, label}`.
+- `in_response_to` is optional — useful to tie the prompt back to a comment that triggered it.
+
+**The user's reply** arrives in `inbox.jsonl` as:
+
+```json
+{
+  "type": "agent-response",
+  "prompt_id": "p-...",
+  "answer": "backfill" | "skip" | "<freetext text>",
+  "id": "c-...",
+  "created_at": "<ISO 8601>"
+}
+```
+
+The Monitor you have on the inbox catches it. Match `prompt_id` back to your queued question and act.
+
+**When to use:** ambiguous edits, missing URLs/values, multi-step flows where you need acknowledgement before proceeding. Don't use for every minor decision — too many cards is noisy. One question at a time is the right cadence; the client only shows the newest unanswered prompt, so older queued questions wait for it.
+
+**File lifecycle:** the prompts file is append-only JSON-lines (like `inbox.jsonl`). You can ignore old entries; the client filters answered prompts via localStorage. No need to rewrite the file.
+
 ## Removal flow (clean static copy)
 
 If the user wants their HTML back to a clean, server-independent state:
