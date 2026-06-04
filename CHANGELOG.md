@@ -9,6 +9,145 @@ this project uses [semantic versioning](https://semver.org/).
 
 Holding ground for the next batch.
 
+## [v0.3.0] — 2026-06-04
+
+Adds an in-tool way for the agent to ask the user a question mid-session — no
+more bouncing back to Claude Code to answer a clarifying prompt. Plus a
+selection-aware color fix in the inline editor, a panning + zoom layer on top
+of the image-edit experience, a broader commentable-class net for nested card
+regions, and a stability pass on the polling + concurrency paths driven by an
+audit of the live module.
+
+### Added
+
+- **Agent-prompt card.** New `feedback/prompts.jsonl` channel: the agent
+  appends a JSON line with prompt text, optional quick-reply options, and an
+  optional `in_response_to` link. The client polls the file alongside
+  `history.json`, surfaces the newest unanswered prompt in a top-center card
+  (`cf-agent-prompt`), and posts the reply through the existing `/feedback`
+  endpoint as `type: "agent-response"` so the agent's Monitor catches it like
+  any other comment. Quick-reply options render as buttons that submit
+  instantly; absent options the card shows a freeform textarea with ⌘↵ to
+  send and Esc to dismiss. Answered prompt ids persist in localStorage so a
+  page reload doesn't re-show resolved questions. `inject.py` now pre-creates
+  `prompts.jsonl` next to the existing `inbox.jsonl` / `history.json` to
+  avoid 404 spam on every poll tick. Schema documented in SKILL.md under
+  "Asking the user mid-session."
+- **Image-edit pan via `object-position`.** During image-edit mode, plain
+  arrow keys now pan the photo content within its frame (Photoshop-style:
+  arrow direction = where the image shifts; ↑ shifts up, exposing the
+  bottom). Stored as `object-position: calc(50% ± Xpx) calc(50% ± Ypx)` so
+  nudges accumulate predictably regardless of natural image dimensions.
+  `object-fit: cover` is auto-applied on first pan so the overflow can be
+  clipped. Shift + arrow falls back to the prior element-nudge (margin-based
+  layout shift). +/- (or = unshifted) zoom in / out via `transform: scale`,
+  clamped to [0.5x, 5x]; at exactly 1x the transform is removed so the
+  source stays clean.
+- **`window.cfFeedback.queueComment(comment)`** — host-page queue API.
+  Lets a host page push its own comment object into the pending list instead
+  of POSTing to `/feedback` directly; the comment shows up in the same panel
+  the user already trusts to review + submit feedback, and nothing ships
+  until they hit submit. Useful for host-side editors / admin panels (e.g.
+  a gallery content manager). The `comment` must have a `type`; `id` and
+  `created_at` auto-fill. Custom types render with a generic row in the
+  pending list — add a branch in `renderPending()` for a nicer preview.
+- **`data-cf-ignore` host-page opt-out.** Any element marked with the
+  attribute (or its descendants) is invisible to feedback handlers — no
+  selection popup, no double-click-to-edit, no element-mode hover, no
+  snapshot arming. Use on host-side admin panels, modals, or custom editors
+  that need to swallow their own input without triggering the feedback
+  layer.
+- **`dimensional_conflict` on text-edit commits.** When the user commits a
+  resize drag that pushes the element past a parent constraint (e.g. a
+  text container's `max-width`), the comment carries a structured
+  `dimensional_conflict` field with `kind` / `source` / `constraint` /
+  `constraint_value_px` / `actual_px` / `description`. The user saw a
+  warning chip in the editor toolbar at commit time and chose to submit
+  anyway, so this is an explicit ask for resolution. Documented decision
+  guidance in SKILL.md: default to raising the constraint for text
+  containers; pin literal pixels for elements where the explicit size is
+  the point.
+
+### Changed
+
+- **`applyInlineStyle` is now selection-aware.** Picking a color (or
+  background-color / font-family / font-size / line-height) with a
+  non-collapsed text selection inside the editing element now scopes the
+  style to the selection instead of writing it on the whole element. Colors
+  route through `document.execCommand("foreColor" / "hiliteColor")`; other
+  text props wrap the selected range in a `<span style="prop:value">` via
+  `range.surroundContents`. Falls back to the element-level apply if the
+  range crosses element boundaries (`surroundContents` throws). Fixes the
+  long-standing bug where colouring the selected word `florals` re-coloured
+  the un-spanned `Exquisite` and `&` around it instead.
+- **`editPendingComment` routes image-shaped pending edits back through
+  `startImageEdit`.** Previously, double-clicking an image with a queued
+  edit re-opened the text editor (because `editPendingComment`
+  unconditionally called `startTextEdit`); now it checks
+  `IMAGE_EDITABLE_TAGS.has(target.tagName)` and dispatches accordingly,
+  preserving the cumulative `original_outer_html` for diff continuity.
+- **`COMMENTABLE_CLASS_SUBSTRINGS` expanded.** Added `aside`, `price`,
+  `label`, `value`, `summary`, `head`, `foot`, `body` to the substring set
+  so the element-mode selector picks up semantic card regions like
+  `pcard-aside`, `pcard-aside-head`, `fc-body`, `.price`, `.label` that
+  previously fell through to the catch-all id-only rule.
+- **Image dblclick descendant-search fallback.** `onDblClick` now walks up
+  to 3 container levels from the click target and checks image descendants
+  whose bounding rect contains (or is within 10px of) the click point.
+  Fixes the "I clicked the photo but got the text editor" report when the
+  click landed on a rounded-corner card edge or a padding band between
+  image and text body.
+
+### Fixed
+
+- **History polling no longer freezes on a mid-write parse error.**
+  `fetchHistory` previously cached `lastHistoryString = text` *before*
+  `JSON.parse(text)`, so a malformed read from the agent writing
+  mid-fetch poisoned the cache and the next poll's `text ===
+  lastHistoryString` short-circuit would skip retries forever. The cache
+  write now lands only after a successful parse.
+- **Stale-batch timer no longer resets on unrelated history changes.**
+  Removed the `staleTimer` push-back inside `fetchHistory`. Any
+  `history.json` delta used to extend the user's "Claude is processing…"
+  deadline indefinitely, even when the change wasn't on their batch. The
+  deadline set at submit time now stands on its own.
+- **`saveLS` quota-exceeded no longer locks the UI.** Wrapped the
+  `localStorage.setItem` in a try/catch with a one-time toast so a session
+  with ~10 pending entries × ~600-char `outer_html` payloads can fill the
+  5 MB LS quota without an uncaught throw freezing every saveLS-touching
+  handler.
+- **`findAnchorNode` hardened.** Early-returns on falsy / whitespace-
+  containing anchors (no more `CSS.escape(undefined)` matching `data-cf-
+  change="undefined"`; no more silent `~=` token mismatches that loop
+  "missing anchor" toasts on every poll). Query scoped to `document.body`
+  so UI internals never shadow a host-page anchor.
+- **MutationObserver short-circuit on UI re-renders.** The
+  `_cfAnchorObserver` now bails when the mutation target is inside
+  `#claude-feedback-root`. Every `renderPending` / `renderHistory` was
+  firing the observer and triggering hundreds of `closest()` calls per
+  re-render; the short-circuit drops that to ~zero.
+
+### Server
+
+- **Inbox append is now concurrency-safe.** `server.py` wraps the
+  `inbox.jsonl` append in a process-wide `threading.Lock`. Without it,
+  `ThreadingTCPServer` + two simultaneous submits + a batch larger than
+  `PIPE_BUF` (~4 KB) interleaved bytes mid-line and corrupted the JSONL
+  the agent reads. Realistic with multi-comment batches containing
+  truncated `outer_html` payloads.
+
+### Refactor
+
+- **`postFeedback(comments, opts)` helper.** Four sites that built the
+  `{ submitted_at, page_url, comments, source? }` envelope and POSTed to
+  `/feedback` (the Squarespace scope-wrap request, the audit-fix
+  submission, the history-undo request, and the new agent-prompt reply)
+  now go through a single helper. `submitBatch` stays separate — it owns
+  the pending-list state path and isn't a thin POST. Also added a
+  `newCommentId(suffix?)` helper for the canonical `c-${ts}-${rand}`
+  shape (only the new prompt path uses it so far; remaining call sites
+  still inline the same expression).
+
 ## [v0.2.1] — 2026-06-02
 
 Post-v0.2.0 stability + feature pass before the v0.3 viewport-switcher fork. Adds the Squarespace audit (with a scope-root gate), a palette-aware color popover, a style paintbrush, the comment-while-editing button, history-undo on the last 5 changes, the image-URL swap, and a refactored selection-frame overlay system. Also lands a feature backlog (BACKLOG.md) for what's next.
