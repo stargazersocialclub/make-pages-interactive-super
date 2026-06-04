@@ -1252,6 +1252,36 @@ body.cf-paintbrush-mode #cf-edit-paintbrush {
 .cf-resize-handle:hover { transform: scale(1.18); }
 .cf-resize-tl, .cf-resize-br { cursor: nwse-resize; }
 .cf-resize-tr, .cf-resize-bl { cursor: nesw-resize; }
+/* Conflict state — handles + editing-element outline tint to the rose palette
+   when detectResizeConflict reports a parent-constraint violation. */
+.cf-resize-handle.cf-resize-conflict {
+  background: var(--cf-rose);
+  box-shadow: 0 0 0 1px var(--cf-rose), 0 2px 10px var(--cf-rose-tint);
+}
+.cf-editing-target.cf-resize-conflict-target {
+  outline-color: var(--cf-rose) !important;
+}
+/* Toolbar chip naming the crossed constraint. Hidden until .cf-visible.
+   Mirrors the .cf-clear-all-float pill styling (same rose-tint pattern). */
+.cf-resize-conflict-chip {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: var(--cf-rose-tint);
+  border: 1px solid var(--cf-rose);
+  color: var(--cf-rose);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  max-width: 380px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cf-resize-conflict-chip.cf-visible { display: inline-flex; }
 .cf-edit-toolbar-sep {
   width: 1px;
   align-self: stretch;
@@ -1736,6 +1766,27 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
   font-weight: 600;
   margin-bottom: 4px;
   font-style: normal;
+}
+.cf-pq-gallery-thumbs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 4px 0;
+  font-style: normal;
+}
+.cf-pq-gallery-thumb {
+  width: 42px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid rgba(199, 162, 78, 0.28);
+  background: rgba(255, 255, 255, 0.04);
+}
+.cf-pq-gallery-more {
+  font-size: 11px;
+  color: var(--cf-gold);
+  font-weight: 600;
+  padding: 0 4px;
 }
 .cf-pq-text {
   color: var(--cf-text);

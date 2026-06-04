@@ -40,6 +40,12 @@ INITIAL_PPID = os.getppid()
 _activity_lock = threading.Lock()
 _last_activity = time.monotonic()
 
+# Inbox append lock — ThreadingTCPServer fires concurrent handler threads, and
+# a batch with several truncated outer_html payloads easily exceeds PIPE_BUF
+# (~4 KB), so plain `f.write` is not atomic. Two simultaneous submits would
+# interleave bytes mid-line and corrupt the JSONL the agent reads.
+_inbox_lock = threading.Lock()
+
 
 def _touch_activity():
     global _last_activity
@@ -143,8 +149,10 @@ class FeedbackHandler(http.server.SimpleHTTPRequestHandler):
             data["received_at"] = time.time()
             data["received_iso"] = time.strftime("%Y-%m-%dT%H:%M:%S")
             inbox = self.feedback_dir / "inbox.jsonl"
-            with open(inbox, "a") as f:
-                f.write(json.dumps(data) + "\n")
+            line = json.dumps(data) + "\n"
+            with _inbox_lock:
+                with open(inbox, "a") as f:
+                    f.write(line)
             sys.stdout.write(f"[feedback] batch with {len(data.get('comments', []))} comment(s) -> {inbox}\n")
             sys.stdout.flush()
             self._json(200, {"ok": True})
