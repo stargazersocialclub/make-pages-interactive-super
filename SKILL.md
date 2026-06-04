@@ -68,6 +68,14 @@ When a new batch arrives in `inbox.jsonl`:
   ```
 - The page polls `history.json`, sees the new batch, and surfaces a "changes ready" banner at the top of the page (plus a 🔔 prefix in the tab title). The user presses `R` (or clicks the banner) to reload — scroll position is preserved, and the walkthrough is reachable via `T` or the panel button. The "processing…" banner clears automatically when any `in_response_to` matches a submitted comment id.
 
+### Two cross-cutting rules — non-negotiable
+
+Both rules came directly from user feedback after early sessions where the agent filtered submissions:
+
+1. **No second-guessing user input.** Apply every comment and edit in the batch verbatim. Do NOT filter submissions through any "this looks like a stray drag," "this looks like an accidental overwrite," "they probably meant something else" heuristic. The user saw their edit in the browser, hit confirm, and submitted — that is the decision. The only valid no-op is `original_outer_html === new_outer_html` byte-for-byte (true editor-open-then-close-without-touching-anything); removing an empty `class=""` or `style=""` attribute also counts as no-op. Otherwise: ship it. This applies especially to "dimensional pin" patterns — `width` / `height` / `margin-*` / `flex-shrink` / `flex-grow` / `object-position` commits with `!important`, including `dimensional_conflict` confirmations where the user saw a warning chip and submitted anyway. The skill version history records multiple sessions where the agent built up "skip the resize pins as accidental" heuristics that bit when the user actually wanted them — don't repeat that pattern. The typo-QC pass in step 3 of "Handling text-edit comments" above is the ONE exception (user-approved silent cleanup of whitespace + grammar artifacts in text content); it does not extend to wording, dimensions, structure, or any other content decision.
+
+2. **Sibling-group dimensions propagate.** When a dimensional commit lands on one element that is part of a sibling layout group — every `.fc` in `.feat`, every `.pcard` in `.pcards`, every `.step` in `.steps`, every `.ccard` in `.ccards`, every `<li>` in the same `<ul>`, etc. — assume the same values apply to every sibling in that group and propagate them to the matching slot of each sibling (img-of-the-card, fc-body-of-the-card, h3-of-the-card, etc.). If a sibling's slot doesn't exist (deleted, structurally different), skip that sibling and note it in the history description. NON-dimensional changes inside a sibling group — text rewrites, color picks, URL swaps — do NOT propagate; those are single-element edits. If the sibling group is ambiguous (the element isn't a clean direct-child of a repeated layout, or there are multiple plausible groups), use the agent-prompt card (see "Asking the user mid-session" below) to confirm before applying. Treat the design as a unit; pinning one card while leaving others at natural-fit creates a broken visual rhythm the user has to fix sibling by sibling.
+
 ### Comment types
 
 Each inbox comment carries a `type` field:
@@ -179,6 +187,25 @@ When you need a decision or a piece of missing info from the user — a URL they
 The Monitor you have on the inbox catches it. Match `prompt_id` back to your queued question and act.
 
 **When to use:** ambiguous edits, missing URLs/values, multi-step flows where you need acknowledgement before proceeding. Don't use for every minor decision — too many cards is noisy. One question at a time is the right cadence; the client only shows the newest unanswered prompt, so older queued questions wait for it.
+
+**Plain-language phrasing — critical.** The card appears inside the user's live page, not in Claude Code. The user reads it as a designer / business owner, not a developer. Every `prompt` string and every `option.label` must be plain language a non-technical person reads at a glance.
+
+- Refer to elements by what the user SEES on the page — *"the price line"*, *"the three paragraphs under 'This is for you'"*, *"the gold heading on the Stargazer card"*. Never use `cf_id` / `el-N` / internal selectors in the prompt text.
+- Describe visual effects, not CSS — *"sizes you set"* / *"the spacing you wanted"* / *"how the image is positioned"*, not `width:413px !important` / `flex-shrink:0` / `margin-top:62px`.
+- Frame option labels as outcomes, not operations — *"Keep my sizing"* beats *"Apply the dimensional pins"*. *"Use even spacing instead"* beats *"Skip the resize commits"*. A neutral *"Show me how it looks first"* is a fine third option when the choice has visual stakes.
+- Boil to the actual question. Skip the *"earlier you said X, I read that as Y, but now I'm thinking Z"* meta-explanation — the user remembers what they said.
+- Target ≤ 25 words on the prompt and ≤ 6 words per option label.
+- Keep the internal mapping (which CSS properties on which elements, batch ids, file paths) in the `history.json` change description, never in the prompt.
+
+Example — instead of "Backfill the dimensional pins on el-9/el-10/el-11/el-14 (width:413/413/720, heights:138/162/114, margin-top:62) despite the 'clean it up' note?":
+
+```
+prompt: "Earlier you set custom sizes on the three paragraphs under 'This is for you' but asked me to keep the spacing even. Want your sizes back, or stick with even spacing?"
+options:
+  - {"value": "user-sizes", "label": "Use my sizes"}
+  - {"value": "even-spacing", "label": "Keep even spacing"}
+  - {"value": "preview", "label": "Show me both first"}
+```
 
 **File lifecycle:** the prompts file is append-only JSON-lines (like `inbox.jsonl`). You can ignore old entries; the client filters answered prompts via localStorage. No need to rewrite the file.
 

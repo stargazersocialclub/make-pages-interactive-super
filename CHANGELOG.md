@@ -9,6 +9,32 @@ this project uses [semantic versioning](https://semver.org/).
 
 Holding ground for the next batch.
 
+## [v0.3.1] — 2026-06-04
+
+Docs-only patch. Lifts three agent-behavior rules from personal session notes
+into SKILL.md so any agent invoking the skill picks them up on first read.
+
+### Added
+
+- **"Two cross-cutting rules — non-negotiable" block** in the "Responding to
+  a feedback batch" section: (1) **No second-guessing user input** — apply
+  every commit verbatim; byte-identical `original_outer_html === new_outer_html`
+  is the only no-op; dimensional-pin patterns called out as a previously-bitten
+  heuristic to avoid; the typo-QC carve-out preserved as the one user-approved
+  silent fix. (2) **Sibling-group dimensions propagate** — a dimensional
+  commit on one `.fc` / `.pcard` / `.step` / `.ccard` / `<li>` sibling
+  propagates to all matching slots in the group; non-dimensional edits (text,
+  color, URL) stay single-element; ambiguous grouping → use the agent-prompt
+  card to confirm. Both rules came from user feedback after sessions where
+  the agent filtered submissions and the user had to manually re-instruct.
+- **Plain-language phrasing rules** in the "Asking the user mid-session"
+  section: prompt text and option labels must read as plain language for a
+  designer / business owner, not a developer — no `cf_id` / `el-N`,
+  no CSS terms (`px`, `!important`, `flex-shrink`), no editor jargon (`pin`,
+  `backfill`, `dimensional`); refer to elements by what the user sees,
+  describe outcomes not operations, target ≤ 25 words on the prompt and
+  ≤ 6 per option label. Includes a before/after rewrite example.
+
 ## [v0.3.0] — 2026-06-04
 
 Adds an in-tool way for the agent to ask the user a question mid-session — no
