@@ -9,6 +9,29 @@ this project uses [semantic versioning](https://semver.org/).
 
 Holding ground for the next batch.
 
+## [v0.3.2] — 2026-06-04
+
+Snapshot capture (Alt-drag) was failing on pages using modern CSS — `transform:
+scale`, `calc()` in `object-position`, `backdrop-filter: blur`, multi-stop
+linear-gradients — with a raw `Failed to execute 'createPattern' on
+'CanvasRenderingContext2D'` error from the vendored html2canvas v1.4.1.
+Swapped the bundle for html2canvas-pro v2.0.4, an actively-maintained drop-in
+fork that handles all four cases. Also a one-line friendlier toast for the
+specific createPattern error so the next dev/user sees plain language instead
+of a Canvas2D stack trace.
+
+### Changed
+
+- **`lib/html2canvas.min.js`**: vendored html2canvas 1.4.1 → html2canvas-pro
+  2.0.4 (MIT, free). UMD-exports to `window.html2canvas`, same API, no caller
+  changes needed. The lazy-load path in `ensureHtml2Canvas` already references
+  `window.html2canvas`; nothing else moved. Bundle size: ~227 KB.
+- **Friendlier snapshot error**: when the underlying error matches the
+  `createPattern.*width or height of 0` Canvas2D throw, the toast now reads
+  *"snapshot couldn't capture an element on the page (one of the backgrounds
+  rendered at 0×0). Try the snapshot again or scroll slightly and retry."*
+  instead of the raw error message.
+
 ## [v0.3.1] — 2026-06-04
 
 Docs-only patch. Lifts three agent-behavior rules from personal session notes

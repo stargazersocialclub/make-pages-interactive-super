@@ -234,7 +234,7 @@ Strips both tags from every `*.html`. Leaves the `feedback/` directory alone (de
 │   │                       # with per-element markers + marker menu,
 │   │                       # quick-guide overlay, history walkthrough
 │   ├── feedback.css        # styles (scoped under #claude-feedback-root)
-│   ├── html2canvas.min.js  # vendored html2canvas 1.4.1, lazy-loaded on first
+│   ├── html2canvas.min.js  # vendored html2canvas-pro 2.0.4, lazy-loaded on first
 │   │                       # snapshot. Bundled so it works offline.
 │   └── server.py           # stdlib-only HTTP server, also serves snapshot PNG
 │                           # uploads at POST /snapshot/<id>.png
