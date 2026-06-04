@@ -9,6 +9,82 @@ this project uses [semantic versioning](https://semver.org/).
 
 Holding ground for the next batch.
 
+## [v0.4.0] — 2026-06-04
+
+Three feature drops + a couple of correctness fixes, all field-tested through a
+multi-hour Wedding Experience landing-page session.
+
+### Added
+
+- **Standalone background editor** (`cf-bg-toolbar`). Opens via two gestures:
+  (1) the new `🎨 bg` button in the element-mode popup; (2) a double-click into
+  the blank-bg area of any section / card / panel / overlay (the dblclick
+  handler now falls through to `findBgBearingAncestor` when no text/image is
+  at the click point). Floating dialog with five layered controls: solid color
+  swatch + alpha, gradient (linear / radial / none with type / angle°, multi-
+  stop list — each stop has color, position 0–100%, alpha 0–100%, delete; `+
+  stop` adds), background image (URL input, 🚫 clear, size cycle, position
+  cycle), and a single unified `opacity` control whose semantics depend on
+  what's also set: with no image/gradient it acts as bg-color alpha; with an
+  image or gradient present it controls a tint-overlay layer (uniform
+  linear-gradient using the bg-color RGB at `1 − opacity` alpha) that sits on
+  top — so opacity targets the *background*, not the whole element. Tint
+  overlay is round-trip-safe: read code detects an existing tint layer at the
+  top of the bg-image stack and reverses it back into the opacity slider on
+  re-open. Submits as a `text-edit` comment (style-only diff) — no new wire
+  type needed.
+- **Section reorder controls**. Per-top-level-section `↑` / `↓` chip that
+  hovers in the top-right corner. Single click swaps the section with its
+  previous/next sibling section in the DOM and queues a new `section-reorder`
+  comment type with `direction`, `section` anchor, and `swapped_with` anchor.
+  Boundary buttons grey out automatically. Removing the pending entry reverts
+  the visual swap. Documented in SKILL.md so the agent knows to mirror the
+  swap in source HTML.
+
+### Changed
+
+- **Vertical-align cycle now actually moves the text.** Previous implementation
+  wrote only `align-self` / `vertical-align`, which had no effect on the common
+  case (a block-flow `<p>`/`<h3>` inside a regular block parent). New
+  implementation sets `display: flex; flex-direction: column;
+  justify-content: <flex-start | center | flex-end>` on the editing element
+  itself — aligns the text against the top/center/bottom of the element's own
+  box (its height pin), independent of the parent's layout. Side effect to
+  know: elements with inline-flowing spans (e.g. a `<p>` with colored-span
+  children) will have those spans treated as flex items; for text-only blocks
+  (the common case the toolbar is used for) the rendering is the same as
+  block flow.
+- **Font-size spinner step `0.5` → `1`**. Each arrow click now advances a full
+  pixel, so changes register on the eye immediately instead of needing two
+  clicks for a perceptible bump.
+
+### Fixed
+
+- **`detectTintOverlay` regex was splitting on the first comma inside
+  `rgba(r, g, b, a)`** and failing to recognize tint layers. Result: a
+  toolbar-authored bg saved with a tint would, on next open, misclassify the
+  tint as the user's gradient — meaning a later bg-color change wouldn't
+  regenerate the tint with the new color (the visible wash stayed the old
+  hue). Introduced `splitTopLevelCommas` (paren-aware top-level comma splitter)
+  and routed `detectTintOverlay` + related parsers through it.
+- **Stagger transition-delay on `.reveal` cards leaked into hover transitions.**
+  Inline `transition-delay: .2s` / `.3s` on staggered reveal cards (`.fc`,
+  `.step`, `.pcard`) applied to ALL transitions on those elements — so hover
+  felt slow on the 3rd/4th cards specifically. Documentation note for the
+  pattern is in SKILL.md; the matching CSS fix
+  (`#ssc-we .reveal.in { transition-delay: 0s !important }`) is page-side, not
+  library-side.
+
+### Notes for agents
+
+- New comment type `section-reorder` is documented in the "Comment types"
+  section of SKILL.md + has its own handling subsection. Apply by locating
+  both sections in source HTML (prefer `id` anchor; fall back to selector
+  / text_snippet) and swapping their order in the file.
+- Bg edits go through the existing `text-edit` pipeline — the new toolbar's
+  output appears in `new_outer_html` as inline-style diffs the agent already
+  knows how to handle.
+
 ## [v0.3.2] — 2026-06-04
 
 Snapshot capture (Alt-drag) was failing on pages using modern CSS — `transform:

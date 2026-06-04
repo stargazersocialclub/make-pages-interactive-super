@@ -88,7 +88,9 @@ Each inbox comment carries a `type` field:
   - **List edit**: the dblclick landed inside a `<ul>`/`<ol>` — the editing target is the *list*, not a single `<li>`. Diff against `new_html` to see added / removed / reordered `<li>` items.
   - **Dimensional conflict**: when present, `dimensional_conflict` is `{ kind, source, constraint, constraint_value_px, actual_px, description }` — e.g. `{ kind: "parent-max-width", source: ".sec-head", constraint: "max-width", constraint_value_px: 620, actual_px: 877, description: "exceeds .sec-head max-width 620px" }`. The user saw a warning chip in the editor toolbar at commit time and chose to submit anyway, so they're consciously asking you to handle the conflict. Two common resolutions: (a) raise the constraint (e.g. add a `max-width: none` override on the parent and drop the inline width/height so the element scales responsively), or (b) commit the literal pixel dimensions and accept the overflow. Pick (a) by default for text containers, (b) for elements where the explicit size is the point. Note the choice in the history `description`. `kind` values: `parent-max-width`, `parent-overflow`, `track-overflow` (grid/flex), `viewport-overflow`.
 - **`snapshot`** — user Alt-dragged a region. Payload: `region` ({ `x`, `y`, `w`, `h`, viewport coords too }), `image_path` (relative path like `feedback/snapshots/snap-<ts>-<rand>.png` — Read it with the Read tool to view), `elements[]` (up to 15 element anchors whose bounding rects intersect the captured region — structural context alongside the pixels), and the user's `comment`.
+- **`add-here`** — user pressed `A` and clicked somewhere to drop a positional "add ___ here" pin. Payload: `position` ({ `doc_x`, `doc_y` (document coords — survives scroll), `viewport_x`, `viewport_y`, `scroll_x`, `scroll_y` (capture-time scroll for re-derivation)}), `nearest_element` (anchor info for the nearest commentable ancestor at the click point, or `null` if there is none), and the user's `comment` describing what they want added at that spot. Treat the user's `comment` as the intent and the position + nearest_element as the location hint — decide where in source the new content actually belongs based on the surrounding structure, not the literal pixel coords.
 - **`delete`** — user clicked "delete" in the element-mode popup (or queued it via shift-multi-select). The element was already removed from the live DOM client-side; the agent's job is to mirror that removal in source. Payload: `element` (anchor info — `cf_id` / `selector` / `tag` / `text_snippet` / truncated `outer_html`), `parent` ({ `tag`, `id`, `selector` }), `index` (the element's position among its parent's children at the moment of deletion), `original_outer_html` (full untruncated outerHTML so the source-side removal can be a direct text match if `cf_id` is stale).
+- **`section-reorder`** — user clicked a ↑/↓ chip in the corner of a `<section>` to move it. The DOM swap already happened client-side; the agent's job is to mirror it in source. Payload: `direction` ("up" | "down"), `section` (anchor info for the moved section), `swapped_with` (anchor info for the previous/next sibling section it swapped with).
 
 ### Handling `text-edit` comments
 
@@ -122,6 +124,17 @@ The user wants to point at something visual.
 2. The `elements[]` array lists the cf_ids / tags / text snippets that intersect the captured region — use it to narrow down which source elements the user is pointing at.
 3. The `comment` field is the user's note. Combine the image, the elements list, and the comment to figure out what to change.
 4. Record a history entry; reference the snapshot's image_path in the description so future-you knows what was shown.
+
+### Handling `section-reorder` comments
+
+The user clicked the ↑ or ↓ chip on a section to move it up or down. Payload: `direction` ("up" | "down"), `section` (anchor info for the moved section), `swapped_with` (anchor info for its previous/next sibling section it swapped places with). The visual swap already happened in the browser — your job is to mirror it in source.
+
+1. Locate both sections in source HTML using the anchor info (prefer `id`; fall back to selector or text_snippet).
+2. Swap their order in the file. If `direction` is "up", `section` now comes before `swapped_with`; if "down", `section` now comes after `swapped_with`. Cleanest implementation: copy each section's full HTML range, then write them back in the new order.
+3. Add a `data-cf-change="ch-<slug>"` anchor on the moved section (typically the `section` payload's element) so the walkthrough scrolls there post-reload. Use a slug like `ch-<moved-id>-moved-<direction>`.
+4. History entry: title is `Section <#moved-id> moved <direction>`; description notes which two sections swapped and any layout implications (reveal animations don't break, but anchor links to ids/hashes still work).
+
+Multiple `section-reorder` comments can land in one batch (user clicked the chip multiple times). Apply them in submission order — each one swaps the moved section with its NEW neighbor at the time of click, not the original neighbor.
 
 ## On startup in a directory that already has feedback
 
@@ -187,6 +200,8 @@ When you need a decision or a piece of missing info from the user — a URL they
 The Monitor you have on the inbox catches it. Match `prompt_id` back to your queued question and act.
 
 **When to use:** ambiguous edits, missing URLs/values, multi-step flows where you need acknowledgement before proceeding. Don't use for every minor decision — too many cards is noisy. One question at a time is the right cadence; the client only shows the newest unanswered prompt, so older queued questions wait for it.
+
+**ALSO use the prompt card for agent-side observations the user should weigh in on.** If applying an edit forced you to make a judgment — a styled wrapper that became empty and you cleaned it up, an attribute that got dropped when you simplified the markup, contradictory values where you had to pick one — surface it as a prompt. Don't bury the observation in the history `description` and expect the user to scroll the walkthrough to find it. They are on the live page; an in-tool prompt lets them confirm or redirect in two seconds. The history `description` still records the choice for the audit trail, but the prompt is the user-facing surface. Skip this for purely mechanical applications, for silent typo-QC fixes, and for clear sibling-propagation cases.
 
 **Plain-language phrasing — critical.** The card appears inside the user's live page, not in Claude Code. The user reads it as a designer / business owner, not a developer. Every `prompt` string and every `option.label` must be plain language a non-technical person reads at a glance.
 
