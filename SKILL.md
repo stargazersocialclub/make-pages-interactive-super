@@ -90,7 +90,8 @@ Each inbox comment carries a `type` field:
 - **`snapshot`** — user Alt-dragged a region. Payload: `region` ({ `x`, `y`, `w`, `h`, viewport coords too }), `image_path` (relative path like `feedback/snapshots/snap-<ts>-<rand>.png` — Read it with the Read tool to view), `elements[]` (up to 15 element anchors whose bounding rects intersect the captured region — structural context alongside the pixels), and the user's `comment`.
 - **`add-here`** — user pressed `A` and clicked somewhere to drop a positional "add ___ here" pin. Payload: `position` ({ `doc_x`, `doc_y` (document coords — survives scroll), `viewport_x`, `viewport_y`, `scroll_x`, `scroll_y` (capture-time scroll for re-derivation)}), `nearest_element` (anchor info for the nearest commentable ancestor at the click point, or `null` if there is none), and the user's `comment` describing what they want added at that spot. Treat the user's `comment` as the intent and the position + nearest_element as the location hint — decide where in source the new content actually belongs based on the surrounding structure, not the literal pixel coords.
 - **`delete`** — user clicked "delete" in the element-mode popup (or queued it via shift-multi-select). The element was already removed from the live DOM client-side; the agent's job is to mirror that removal in source. Payload: `element` (anchor info — `cf_id` / `selector` / `tag` / `text_snippet` / truncated `outer_html`), `parent` ({ `tag`, `id`, `selector` }), `index` (the element's position among its parent's children at the moment of deletion), `original_outer_html` (full untruncated outerHTML so the source-side removal can be a direct text match if `cf_id` is stale).
-- **`section-reorder`** — user clicked a ↑/↓ chip in the corner of a `<section>` to move it. The DOM swap already happened client-side; the agent's job is to mirror it in source. Payload: `direction` ("up" | "down"), `section` (anchor info for the moved section), `swapped_with` (anchor info for the previous/next sibling section it swapped with).
+- **`section-reorder`** — user clicked a directional reorder chip to swap an element with its previous / next sibling. Covers both top-level `<section>` reorders (↑/↓ chip with `direction: "up" | "down"`) AND carousel-slide reorders (◁/▷ chip with `direction: "left" | "right"`). The DOM swap already happened client-side; the agent's job is to mirror it in source. Payload: `direction`, `section` (anchor info for the moved element — name is historical, applies to slides too), `swapped_with` (anchor info for the previous/next sibling it swapped with).
+- **`slide-add`** — user clicked the `+` button on the carousel-slide chip and entered one or more image URLs (one per line) to add. The new slides are already inserted in the live DOM after the `after`-anchor slide; the agent's job is to mirror those inserts in source. Payload: `after` (anchor info for the slide the new ones were inserted AFTER), `srcs` (array of URLs the user pasted, in order), `new_outer_htmls` (array of full `<img class="carousel-slide" loading="lazy" alt="..." src="...">` outerHTML strings the editor created; same length as `srcs`).
 
 ### Handling `text-edit` comments
 
@@ -127,14 +128,26 @@ The user wants to point at something visual.
 
 ### Handling `section-reorder` comments
 
-The user clicked the ↑ or ↓ chip on a section to move it up or down. Payload: `direction` ("up" | "down"), `section` (anchor info for the moved section), `swapped_with` (anchor info for its previous/next sibling section it swapped places with). The visual swap already happened in the browser — your job is to mirror it in source.
+The user clicked a reorder chip on either a `<section>` (↑/↓ chip, `direction: "up" | "down"`) or a carousel slide / `data-cf-reorderable-slide` element (◁/▷ chip, `direction: "left" | "right"`). Payload: `direction`, `section` (anchor info for the moved element — historical name; applies to slides too), `swapped_with` (anchor info for its previous/next sibling that it swapped places with). The visual swap already happened in the browser — your job is to mirror it in source.
 
-1. Locate both sections in source HTML using the anchor info (prefer `id`; fall back to selector or text_snippet).
-2. Swap their order in the file. If `direction` is "up", `section` now comes before `swapped_with`; if "down", `section` now comes after `swapped_with`. Cleanest implementation: copy each section's full HTML range, then write them back in the new order.
-3. Add a `data-cf-change="ch-<slug>"` anchor on the moved section (typically the `section` payload's element) so the walkthrough scrolls there post-reload. Use a slug like `ch-<moved-id>-moved-<direction>`.
-4. History entry: title is `Section <#moved-id> moved <direction>`; description notes which two sections swapped and any layout implications (reveal animations don't break, but anchor links to ids/hashes still work).
+1. Locate both elements in source HTML using the anchor info (prefer `id` or `cf_id`; fall back to selector / text_snippet / outer_html match).
+2. Swap their order in the file. Semantics:
+   - `direction: "up"` or `"left"` — `section` now comes BEFORE `swapped_with`
+   - `direction: "down"` or `"right"` — `section` now comes AFTER `swapped_with`
+   Cleanest implementation: copy each element's full HTML range, write them back in the new order.
+3. Add a `data-cf-change="ch-<slug>"` anchor on the moved element so the walkthrough scrolls there post-reload. Use `ch-<moved-id-or-snippet>-moved-<direction>`. (For carousel slides with no id, anchor a stable nearby element like the `.carousel-track` parent.)
+4. History entry: title describes which element moved which direction; description notes which two elements swapped and any layout implications.
 
-Multiple `section-reorder` comments can land in one batch (user clicked the chip multiple times). Apply them in submission order — each one swaps the moved section with its NEW neighbor at the time of click, not the original neighbor.
+Multiple `section-reorder` comments can land in one batch (user clicked the chip multiple times). Apply them in submission order — each one swaps the moved element with its NEW neighbor at the time of click, not the original neighbor.
+
+### Handling `slide-add` comments
+
+The user pasted one or more image URLs into the carousel `+` button. The new `<img class="carousel-slide">` element(s) already exist in the live DOM after the `after`-anchor slide. Mirror the inserts in source.
+
+1. Locate the `after` slide in source HTML using the anchor info.
+2. Insert each URL in `srcs` as a new `<img class="carousel-slide" loading="lazy" alt="..." src="<url>">` element immediately after the `after` slide (in array order — first URL ends up as the first new slide, etc.). The editor's `new_outer_htmls` array carries the exact markup it generated; you can write those verbatim, but trim editor-only attributes (`cf-editing-target`, `data-cf-id`, etc.) before persisting.
+3. Add a `data-cf-change="ch-<slug>"` anchor on the first inserted slide (or the carousel-track wrapper) so the walkthrough scrolls to the new content.
+4. The `alt` text the editor wrote is generic ("Added photo"). Consider updating to something more descriptive based on the URL (e.g. "Adventure and Vow wedding moment" for `Adventure+and+Vow-...` URLs on Stargazer Social Club's CDN) — or leave generic and let the user follow up.
 
 ## On startup in a directory that already has feedback
 

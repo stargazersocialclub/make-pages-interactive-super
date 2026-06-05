@@ -2198,7 +2198,12 @@ body:not(.cf-bg-grad-on) .cf-bg-row-grad .cf-bg-only-linear {
    (otherwise too much chrome). Single click queues a reorder + moves
    the section visually; submitting the batch sends a section-reorder
    comment for the agent to replay in source. */
-.cf-section-reorder {
+/* Section / slide reorder chips are structural-editing UI — only meaningful
+   when the user is actively editing. Default state: completely hidden so the
+   preview view matches what the published page will look like. Showing them
+   requires opening the feedback panel (body.cf-panel-open). */
+.cf-section-reorder { display: none; }
+body.cf-panel-open .cf-section-reorder {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -2211,8 +2216,8 @@ body:not(.cf-bg-grad-on) .cf-bg-row-grad .cf-bg-only-linear {
   transition: opacity 0.18s ease, transform 0.18s ease;
   pointer-events: none;
 }
-section:hover > .cf-section-reorder,
-.cf-section-reorder:focus-within {
+body.cf-panel-open section:hover > .cf-section-reorder,
+body.cf-panel-open .cf-section-reorder:focus-within {
   opacity: 0.95;
   transform: translateY(0);
   pointer-events: auto;
@@ -2243,4 +2248,57 @@ section:hover > .cf-section-reorder,
   opacity: 0.25;
   cursor: not-allowed;
   transform: none;
+}
+
+/* ---------------- Carousel slide reorder ----------------
+   One shared ◁ ▷ chip per carousel-track, repositioned via JS to whichever
+   slide is currently being hovered. Same z-index, transition, and visual
+   weight as the section ↑↓ chip. Hidden by default — only shown when the
+   feedback panel is open (matches the section-reorder gating). */
+.cf-slide-reorder { display: none; }
+body.cf-panel-open .cf-slide-reorder {
+  position: absolute;
+  display: flex;
+  gap: 4px;
+  z-index: 2147483639;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+body.cf-panel-open .cf-slide-reorder.cf-visible {
+  opacity: 0.95;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.cf-slide-reorder button {
+  width: 32px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(18, 14, 8, 0.94);
+  border: 1px solid rgba(231, 209, 150, 0.5);
+  color: #E6CB85;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  transition: background 0.14s, border-color 0.14s, transform 0.14s;
+}
+.cf-slide-reorder button:hover:not(:disabled) {
+  background: rgba(40, 30, 14, 0.96);
+  border-color: #E6CB85;
+  transform: scale(1.08);
+}
+.cf-slide-reorder button:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  transform: none;
+}
+.cf-slide-reorder .cf-slide-add {
+  font-size: 17px;
+  font-weight: 600;
 }
