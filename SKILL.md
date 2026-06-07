@@ -48,6 +48,7 @@ User says any of:
 
 When a new batch arrives in `inbox.jsonl`:
 - Read the entry. Each comment has a stable `cf_id` and a selector pointing to the exact element/text the user commented on.
+- **Always check the batch-level `viewport` field** — `{ width, height, dpr, orientation }` captured at submit time. It tells you whether the user was looking at mobile (width < 600), tablet (600–960), or desktop (≥960) when they wrote the comment, which is decisive for layout / "this is broken" / "doesn't fit" feedback. Without checking it, you'll guess the wrong breakpoint and ship a fix to the wrong media query. If a comment says "doesn't fit," fix at the media query that matches the captured width, not the one you'd guess by content.
 - Edit the relevant HTML files to address each comment. Wrap each modified region with `<span data-cf-change="ch-<short-slug>">…</span>` (or add `data-cf-change` to an existing wrapping element) so the post-reload walkthrough can find the change. One anchor per change.
 - **Append** a new batch object to the end of `<dir>/feedback/history.json` (newest = last; the library walks from the end to find the latest batch). Schema:
   ```json
@@ -66,6 +67,21 @@ When a new batch arrives in `inbox.jsonl`:
     ]
   }
   ```
+- **Use the helper script to append**, not inline `json.dump`. It's a one-line call AND auto-rolls older batches into a JSONL archive so history.json stays bounded — the page's polling-transfer + the agent's read/rewrite cost stay flat across long sessions:
+  ```
+  echo '<batch-json>' | python ~/.claude/skills/make-pages-interactive/scripts/append_history.py <dir>
+  ```
+  Default keep-window is 30 batches; older ones move to `<dir>/feedback/_archive/history-archive.jsonl` (append-only). Override with `--keep N`. The walkthrough only ever reads the latest batch, so trimming older ones is lossless for the user-facing UI; if you ever need an archived batch, grep the archive file.
+- **Trim the inbox periodically** so the agent's read+parse stays cheap. Once the live `inbox.jsonl` is past ~100 submissions, run:
+  ```
+  python ~/.claude/skills/make-pages-interactive/scripts/trim_inbox.py <dir>
+  ```
+  Default keeps the most recent 50 submissions live and moves the rest to `<dir>/feedback/_archive/inbox-archive.jsonl` (plus a point-in-time `inbox-prev-<ts>.jsonl` snapshot for safety). NOTE: the Monitor you have on `inbox.jsonl` via `tail -F` re-emits every remaining line when the file gets truncated, so pause/restart the Monitor around a trim or expect a noisy notification blast (no action needed — those aren't new submissions).
+- **Trim orphaned snapshots** when `feedback/snapshots/` grows past ~30 PNGs (~10 MB). Each snapshot is ~400 KB and they accumulate forever otherwise. Run:
+  ```
+  python ~/.claude/skills/make-pages-interactive/scripts/trim_snapshots.py <dir>
+  ```
+  Deletes any PNG not referenced by the live `inbox.jsonl` / `history.json`. Add `--dry-run` to inspect first. Pairs naturally with `trim_inbox.py` — trim inbox first, then trim snapshots to clean up the now-orphaned PNGs.
 - The page polls `history.json`, sees the new batch, and surfaces a "changes ready" banner at the top of the page (plus a 🔔 prefix in the tab title). The user presses `R` (or clicks the banner) to reload — scroll position is preserved, and the walkthrough is reachable via `T` or the panel button. The "processing…" banner clears automatically when any `in_response_to` matches a submitted comment id.
 
 ### Two cross-cutting rules — non-negotiable
