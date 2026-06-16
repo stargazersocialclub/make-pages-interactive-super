@@ -7,7 +7,53 @@ this project uses [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
-Holding ground for the next batch.
+### Added
+
+- **Brand fonts in the curated font picker.** The inline text editor's
+  font-family dropdown now offers Alegreya Sans SC, Cormorant Garamond,
+  Fraunces, Inter, Josefin Sans, Lato, Lora, Marcellus, Montserrat, Poppins,
+  Public Sans, and Source Serif 4 as permanent choices alongside the existing
+  system / web-safe families. `feedback.css` now ships a Google Fonts
+  `@import` for all of them, so the picks actually render on any host page —
+  the user is no longer limited to whatever fonts the page itself declared.
+- **Image mirror button** in the inline image-edit toolbar. Click toggles a
+  horizontal flip on the editing `<img>` by setting / unsetting
+  `transform: scaleX(-1) !important;` on its inline style. Compose-safe with
+  any other `transform` functions already present — the toggle strips/re-adds
+  only the `scaleX(-1)` token and leaves siblings (rotation, etc.) intact. The
+  inline transform shows up in the outer-html diff on confirm, so the agent
+  persists it to source like any other image-pin (object-position,
+  object-view-box, dimensions).
+
+### Added
+
+- **Scroll-to-pan the bg photo while in bg-edit mode.** The same wheel gesture
+  that pans an `<img>` in the inline image editor now pans a section's
+  background image too: enter bg-edit (dblclick the section's padding/photo),
+  then scroll/two-finger-swipe over the bg to slide the image. Writes a
+  `calc(50% +/- Npx) calc(50% +/- Mpx)` background-position so the offset
+  round-trips through save/reload. The `pos:` button keeps its keyword
+  cycler — clicking it resets the pan and snaps to the picked keyword.
+
+### Fixed
+
+- **Bg-edit position cycler no-op on shorthand-styled elements.** When an
+  element had an inline `style="background: ..."` shorthand (common pattern:
+  `linear-gradient(...), url(...) center 70% / cover`), clicking the bg
+  toolbar's `pos:` cycler updated the button label but the image didn't
+  visibly move. The longhand `background-position: ... !important` was being
+  written but the shorthand stayed in cssText, and serialization let the
+  shorthand's per-layer position keep winning for the image layer. Fix:
+  `applyBgState` now decomposes the shorthand (`removeProperty("background")`)
+  before writing longhands, and always writes `background-image` so the
+  multi-layer bg can't fall back to a stylesheet single-layer URL.
+- **Sticky / fixed positioning on anchored host elements.** Wrapped both
+  `[data-cf-change]` rules in `:where()` so the library's
+  `position: relative;` no longer wins specificity over host-page rules like
+  `.jump-nav { position: sticky }`. Adding `data-cf-change="..."` to a host
+  element that needs custom positioning is now safe again — the library still
+  provides `position: relative` as a fallback when the host hasn't set
+  anything, but any host-page rule of any specificity wins automatically.
 
 ## [v0.4.0] — 2026-06-04
 
