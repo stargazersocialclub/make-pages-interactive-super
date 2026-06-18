@@ -107,6 +107,7 @@ Each inbox comment carries a `type` field:
 - **`add-here`** — user pressed `A` and clicked somewhere to drop a positional "add ___ here" pin. Payload: `position` ({ `doc_x`, `doc_y` (document coords — survives scroll), `viewport_x`, `viewport_y`, `scroll_x`, `scroll_y` (capture-time scroll for re-derivation)}), `nearest_element` (anchor info for the nearest commentable ancestor at the click point, or `null` if there is none), and the user's `comment` describing what they want added at that spot. Treat the user's `comment` as the intent and the position + nearest_element as the location hint — decide where in source the new content actually belongs based on the surrounding structure, not the literal pixel coords.
 - **`delete`** — user clicked "delete" in the element-mode popup (or queued it via shift-multi-select). The element was already removed from the live DOM client-side; the agent's job is to mirror that removal in source. Payload: `element` (anchor info — `cf_id` / `selector` / `tag` / `text_snippet` / truncated `outer_html`), `parent` ({ `tag`, `id`, `selector` }), `index` (the element's position among its parent's children at the moment of deletion), `original_outer_html` (full untruncated outerHTML so the source-side removal can be a direct text match if `cf_id` is stale).
 - **`section-reorder`** — user clicked a directional reorder chip to swap an element with its previous / next sibling. Covers both top-level `<section>` reorders (↑/↓ chip with `direction: "up" | "down"`) AND carousel-slide reorders (◁/▷ chip with `direction: "left" | "right"`). The DOM swap already happened client-side; the agent's job is to mirror it in source. Payload: `direction`, `section` (anchor info for the moved element — name is historical, applies to slides too), `swapped_with` (anchor info for the previous/next sibling it swapped with).
+- **`section-divider-drag`** — user dragged the gold pill that sits between two consecutive sibling sections. The drag drives the **upper section's `padding-bottom`** (extends or shrinks the upper section, moving the boundary instead of leaving a gap). The new padding is already painted on the live DOM client-side; the agent's job is to mirror it in source. Payload: `above_id` (id of the upper section, or null), `below_id` (id of the lower section, or null), `old_padding_bottom_px` and `new_padding_bottom_px` (rounded integers, never negative). The narrative `comment` field summarizes the action. (Note: earlier versions of this skill drove the *lower* section's `margin-top` instead; if you see an old comment with `new_margin_top_px`, apply it as that field's value on the lower section.)
 - **`slide-add`** — user clicked the `+` button on the carousel-slide chip and entered one or more image URLs (one per line) to add. The new slides are already inserted in the live DOM after the `after`-anchor slide; the agent's job is to mirror those inserts in source. Payload: `after` (anchor info for the slide the new ones were inserted AFTER), `srcs` (array of URLs the user pasted, in order), `new_outer_htmls` (array of full `<img class="carousel-slide" loading="lazy" alt="..." src="...">` outerHTML strings the editor created; same length as `srcs`).
 
 ### Handling `text-edit` comments
@@ -155,6 +156,19 @@ The user clicked a reorder chip on either a `<section>` (↑/↓ chip, `directio
 4. History entry: title describes which element moved which direction; description notes which two elements swapped and any layout implications.
 
 Multiple `section-reorder` comments can land in one batch (user clicked the chip multiple times). Apply them in submission order — each one swaps the moved element with its NEW neighbor at the time of click, not the original neighbor.
+
+### Handling `section-divider-drag` comments
+
+The user has already adjusted the upper section's padding in the live DOM — your job is to mirror it in source.
+
+1. Locate the upper section by `above_id` (typically a `<section id="…">`). Fall back to text-snippet / `outer_html` matching if the id is null or stale.
+2. Write `padding-bottom: <new_padding_bottom_px>px !important` into that section's inline `style` attribute. If a `padding-bottom` (or `padding` shorthand) is already present, replace just the bottom side cleanly.
+3. Add a `data-cf-change="ch-<slug>-divider-extended"` (or `-shrunk` if N is smaller than the prior value) anchor on the upper section so the walkthrough scrolls there post-reload.
+4. History entry: title like `"Pulled #<above_id> divider — padding-bottom now <N>px"`; description notes both the old and new values from the payload for the audit trail.
+
+Multiple `section-divider-drag` comments can land in one batch (user dragged several boundaries). Apply each independently. If two land on the same upper section (e.g., user dragged the same divider twice), the later one wins — use its `new_padding_bottom_px`.
+
+If you see an old-format comment with `new_margin_top_px` instead, that's from the legacy version of the skill — write that value as `margin-top: …!important` on the **lower** section (`below_id`).
 
 ### Handling `slide-add` comments
 

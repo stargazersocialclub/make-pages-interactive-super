@@ -2262,6 +2262,39 @@ body.cf-panel-open .cf-section-reorder:focus-within {
   transform: none;
 }
 
+/* ---------------- Section divider drag handle ----------------
+   14px-tall hit zone with a 64x4 gold pill. Gated behind cf-panel-open
+   to match the reorder chips — the pill is editor chrome, not part of
+   what the published page will look like. */
+.cf-divider-handle { display: none; }
+body.cf-panel-open .cf-divider-handle {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 14px;
+  cursor: ns-resize;
+  z-index: 90;
+  background: transparent;
+  pointer-events: auto;
+}
+.cf-divider-handle .cf-divider-bar {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 4px;
+  border-radius: 3px;
+  background: transparent;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.cf-divider-handle:hover .cf-divider-bar,
+.cf-divider-handle.cf-dragging .cf-divider-bar {
+  background: rgba(230, 203, 133, 0.85);
+  box-shadow: 0 0 12px var(--cf-line-gold);
+}
+
 /* ---------------- Carousel slide reorder ----------------
    One shared ◁ ▷ chip per carousel-track, repositioned via JS to whichever
    slide is currently being hovered. Same z-index, transition, and visual
@@ -2313,4 +2346,94 @@ body.cf-panel-open .cf-slide-reorder.cf-visible {
 .cf-slide-reorder .cf-slide-add {
   font-size: 17px;
   font-weight: 600;
+}
+
+/* ---------- Text effects (cf-fx-*) — applied via the "fx" selector in the
+   inline text editor toolbar. Class names land in the source outerHTML on
+   submit; for them to persist after reload the host page needs the same
+   CSS rules. The agent injects these into the host page's <style> block on
+   first commit when an effect class is detected. ---------- */
+.cf-fx-glow {
+  text-shadow:
+    0 0 12px rgba(231,209,150,.55),
+    0 0 28px rgba(199,162,78,.35);
+}
+.cf-fx-gradient {
+  background: linear-gradient(135deg, #E6CB85 0%, #C7A24E 55%, #B8902F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.cf-fx-drop {
+  text-shadow: 2px 3px 0 rgba(0,0,0,.55);
+}
+.cf-fx-engraved {
+  color: rgba(255,255,255,.62);
+  text-shadow:
+    0 1px 0 rgba(255,255,255,.18),
+    0 -1px 0 rgba(0,0,0,.55);
+}
+.cf-fx-underline-draw {
+  position: relative;
+  display: inline-block;
+}
+.cf-fx-underline-draw::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -.08em;
+  height: 2px;
+  background: linear-gradient(90deg, #E6CB85, #C7A24E);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform .8s cubic-bezier(.5,0,.2,1);
+}
+.cf-fx-underline-draw:hover::after,
+.cf-fx-underline-draw.in::after,
+.cf-fx-underline-draw.reveal.in::after {
+  transform: scaleX(1);
+}
+
+/* ---------- Box effects (cf-bxfx-*) — applied via the "box fx" selector in
+   the inline text editor. Hit the border / surround rather than the type. ---------- */
+.cf-bxfx-glow {
+  box-shadow:
+    0 0 24px rgba(231,209,150,.42),
+    0 0 56px rgba(199,162,78,.28),
+    0 0 0 1px rgba(231,209,150,.4);
+}
+.cf-bxfx-shadow {
+  box-shadow:
+    0 14px 32px rgba(0,0,0,.55),
+    0 4px 10px rgba(0,0,0,.32);
+}
+.cf-bxfx-inset-glow {
+  box-shadow:
+    inset 0 0 22px rgba(231,209,150,.4),
+    inset 0 0 50px rgba(199,162,78,.18),
+    0 0 0 1px rgba(231,209,150,.32);
+}
+
+/* ---------- Editing-chrome overrides when fx classes are active ---------- */
+/* Box-fx halos sit in the same visual zone as the cf-editing-target dashed
+   outline (offset 4px). Suppress the outline while a box-fx is on so the
+   shadow preview is visible. The gold tint background still signals editing. */
+.cf-editing-target.cf-bxfx-glow,
+.cf-editing-target.cf-bxfx-shadow,
+.cf-editing-target.cf-bxfx-inset-glow {
+  outline: none !important;
+  outline-offset: 0 !important;
+}
+/* cf-fx-gradient renders text via `background: linear-gradient(...)` +
+   background-clip:text. cf-editing-target sets a `background:` shorthand
+   with !important that wipes the gradient layer — leaving transparent text
+   on tan tint. While editing, drop the editing background and bring the
+   text fill back so the user can see what they're typing. Confirm/exit
+   removes cf-editing-target and the gradient renders normally again. */
+.cf-editing-target.cf-fx-gradient {
+  background: none !important;
+  -webkit-text-fill-color: initial !important;
+  color: var(--cf-gold, #E6CB85) !important;
 }
