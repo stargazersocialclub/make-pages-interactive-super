@@ -763,6 +763,25 @@ body.cf-snapshot-armed * {
   outline: 2.5px solid var(--cf-gold-deep);
   background: rgba(230, 203, 133, 0.08);
   animation: cf-change-pulse 1.5s ease-in-out 2;
+  position: relative;
+}
+:where([data-cf-change]).cf-change-active::after {
+  content: "◈ changed";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: #C7A24E;
+  color: #1a1305;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 3px;
+  z-index: 9999;
+  pointer-events: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  white-space: nowrap;
 }
 @keyframes cf-change-pulse {
   0%, 100% { outline-color: var(--cf-gold-deep); }
@@ -1109,14 +1128,33 @@ body.cf-image-edit-mode .cf-img-only { display: inline-flex !important; }
   font-size: 12px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* Fix a deterministic width so flex-row wrapping is stable. Without this,
+     intrinsic sizing means any reflow (arrow-key object-position update,
+     scroll, address-bar collapse) can re-measure the toolbar and cause rows
+     to wrap differently — width shrinks, height grows, repeat. Capping at
+     viewport for narrow screens. */
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .cf-edit-toolbar.cf-visible { display: inline-flex; }
 .cf-edit-toolbar-row {
   display: flex;
   align-items: center;
   gap: 4px;
-  flex-wrap: wrap;
-  row-gap: 6px;
+  flex-wrap: nowrap;
+}
+/* Action row: label left, 💬 cancel confirm right */
+.cf-edit-toolbar-row.cf-action-row {
+  gap: 6px;
+}
+.cf-tb-spacer {
+  flex: 1;
+}
+/* Format row: all buttons in one no-wrap line (style rows below carry their own border-top) */
+.cf-edit-toolbar-row.cf-format-row {
+  padding-bottom: 2px;
 }
 .cf-edit-toolbar .cf-edit-toolbar-row.cf-style-row {
   gap: 8px;
@@ -2014,8 +2052,8 @@ body.cf-grid-on .cf-grid-overlay { display: block; }
 }
 .cf-edit-marker {
   position: absolute;
-  top: -11px;
-  right: -11px;
+  top: 8px;
+  right: 8px;
   width: 24px;
   height: 24px;
   display: flex;

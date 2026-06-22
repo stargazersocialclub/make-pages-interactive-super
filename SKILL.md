@@ -40,8 +40,11 @@ User says any of:
 5. **Tell the user the URL.** For example: `http://localhost:5050/index.html` (use whatever filename they actually have — `index.html`, `report.html`, etc.). If they have multiple pages, list the top-level ones.
 6. **Start a Monitor on the inbox** so new comments notify you immediately:
    ```
-   Monitor on path: <dir>/feedback/inbox.jsonl
+   tail -n 0 -F <dir>/feedback/inbox.jsonl
    ```
+   The `-n 0` flag is critical — it starts from the END of the current file so the Monitor
+   only fires for genuinely NEW submissions. Without it, `tail -F` replays the last 10 existing
+   lines on startup, flooding you with already-processed comments on every session resume.
    Do NOT poll — let the Monitor notification arrive.
 
 ## Responding to a feedback batch
@@ -76,7 +79,7 @@ When a new batch arrives in `inbox.jsonl`:
   ```
   python ~/.claude/skills/make-pages-interactive/scripts/trim_inbox.py <dir>
   ```
-  Default keeps the most recent 50 submissions live and moves the rest to `<dir>/feedback/_archive/inbox-archive.jsonl` (plus a point-in-time `inbox-prev-<ts>.jsonl` snapshot for safety). NOTE: the Monitor you have on `inbox.jsonl` via `tail -F` re-emits every remaining line when the file gets truncated, so pause/restart the Monitor around a trim or expect a noisy notification blast (no action needed — those aren't new submissions).
+  Default keeps the most recent 50 submissions live and moves the rest to `<dir>/feedback/_archive/inbox-archive.jsonl` (plus a point-in-time `inbox-prev-<ts>.jsonl` snapshot for safety). NOTE: when the live file gets truncated, `tail -F` re-emits every remaining line. Because the Monitor uses `tail -n 0 -F` (starts at EOF), a truncation that SHRINKS the file causes tail to rewind and re-emit the new shorter content — you may get a notification blast for already-processed comments. Run `check_unprocessed.py` after a trim to confirm there is genuinely nothing new before acting.
 - **Trim orphaned snapshots** when `feedback/snapshots/` grows past ~30 PNGs (~10 MB). Each snapshot is ~400 KB and they accumulate forever otherwise. Run:
   ```
   python ~/.claude/skills/make-pages-interactive/scripts/trim_snapshots.py <dir>
@@ -121,6 +124,30 @@ The user has already made the edit they want — your job is to apply it to the 
 5. Record a history entry where the `title` summarizes the edit and the `description` notes both the old and new text (helps you reconstruct intent later if needed).
 
 If the user added a note in `comment`, treat it as additional intent — they may want you to also adjust adjacent prose for consistency, fix Oxford commas in a list they just expanded, etc.
+
+#### Mobile-viewport edits → mobile @media (positions AND dimensions)
+
+If the text-edit's diff is shape-only — meaning every property changed is one of:
+
+- **Position / crop**: `object-position`, `object-view-box`, `object-fit`, `transform` (on an `<img>`), `--cf-zoom` / `--cf-pan-tx` / `--cf-pan-ty`
+- **Dimensions / layout pins**: `width`, `height`, `min-width`, `max-width`, `min-height`, `max-height`, `margin-top` / `-right` / `-bottom` / `-left` (and the shorthand `margin`), `flex-shrink`, `flex-grow`, `flex-basis`
+
+— AND the batch `viewport.width` is < 840px, scope the change to a mobile `@media (max-width:840px)` block in the page's stylesheet, **not** the element's inline `style`. Leave the inline style on the desktop baseline (the previous value or what a recent desktop submission set).
+
+Rationale: image crops AND container dims differ per breakpoint. Inline `!important` would make a mobile-tuned value bleed into desktop and vice versa. By splitting them at the breakpoint, mobile tuning stays mobile and desktop stays desktop. The user confirmed this rule covers dimensional pins (not just position) on 2026-06-18 after the Andromeda card's mobile width/height pins came up.
+
+How:
+- Target the specific element via id, a stable `data-cf-change` token, a `src` substring (for imgs), or a class.
+- If the element has no stable selector, add a `data-cf-change="ch-<slug>-mobile-…"` token to it and target that.
+- Move every shape-only property to the `@media` block with `!important`.
+- Restore the inline `style` to the prior pre-edit value where you can derive it, otherwise drop the property (so the stylesheet default applies on desktop). Note the desktop-reset in the history `description` so the user knows to re-tune desktop if needed.
+- If `viewport.width` ≥ 840 (tablet/desktop), apply inline as usual — that's a desktop-default edit.
+- Non-shape image edits (alt swap, src swap, border, border-radius, opacity, color, background, font-*) apply inline regardless of viewport — those typically aren't viewport-specific.
+- If a single edit mixes shape and non-shape changes, split them: shape → @media, non-shape → inline.
+
+**CRITICAL — never use `!important` on inline shape-only declarations.** Per the CSS cascade, inline `!important` beats stylesheet `!important`, so any inline `object-position:… !important` (or `width:… !important`, etc.) will block the mobile `@media` override from ever winning. When writing an inline desktop baseline for a shape-only property, write it WITHOUT `!important`. The editor (feedback.js) emits inline styles with `!important` by default — when applying a desktop-viewport edit inline, strip the `!important` flag before writing to source. The same applies retroactively when refactoring existing inline styles: strip `!important` from any inline shape-only declaration on an element that has (or will have) a mobile `@media` override.
+
+840px is the conventional SSC mobile breakpoint; if a page uses a different value (check existing `@media (max-width:…)` rules), prefer the page's convention.
 
 ### Handling `delete` comments
 
@@ -182,10 +209,19 @@ The user pasted one or more image URLs into the carousel `+` button. The new `<i
 ## On startup in a directory that already has feedback
 
 If you find `<dir>/feedback/inbox.jsonl` and `<dir>/feedback/history.json` and the skill has been invoked in this session:
-1. Scan inbox for comment ids.
-2. Scan history's `changes[*].in_response_to` union — those are already processed.
-3. If unprocessed comments exist, tell the user the count and ask whether to process now.
-4. Either way, set up the Monitor on the inbox.
+1. Run the single-command check — it covers both live history AND the archive automatically:
+   ```
+   python3 ~/.claude/skills/make-pages-interactive/scripts/check_unprocessed.py <dir>
+   ```
+   Exit code 0 = nothing to do. Exit code 1 = unprocessed comments listed on stdout.
+   Add `--json` to get full comment payloads, or `--ids` to get just IDs.
+2. If unprocessed comments exist, tell the user the count and process them.
+3. Either way, set up the Monitor on the inbox (with `-n 0` — see Setup step 6).
+
+**Why not scan history manually?** History batches older than the live `--keep` window are
+archived to `feedback/_archive/history-archive.jsonl`. Manually reading only `history.json`
+misses those, causing already-processed comments to look unprocessed. `check_unprocessed.py`
+reads both in one pass.
 
 ## Stop flow (user wants to kill the server)
 
@@ -297,8 +333,12 @@ Strips both tags from every `*.html`. Leaves the `feedback/` directory alone (de
 │   └── server.py           # stdlib-only HTTP server, also serves snapshot PNG
 │                           # uploads at POST /snapshot/<id>.png
 └── scripts/
-    ├── inject.py           # idempotent tag injection / removal
-    └── update.py           # git pull --ff-only
+    ├── inject.py               # idempotent tag injection / removal
+    ├── append_history.py       # append a batch + auto-archive old batches
+    ├── trim_inbox.py           # archive old inbox submissions, keep live file bounded
+    ├── trim_snapshots.py       # delete snapshot PNGs no longer referenced by inbox/history
+    ├── check_unprocessed.py    # report unprocessed comments (checks live + archive in one pass)
+    └── update.py               # git pull --ff-only
 ```
 
 ## Gotchas
