@@ -9,6 +9,41 @@ this project uses [semantic versioning](https://semver.org/).
 
 ### Added
 
+- **Multi-row edit toolbar with a fixed deterministic width.** The text/image
+  edit toolbar used to be a single wrap-anywhere flex row, which meant any
+  reflow (arrow-key `object-position` updates, mobile address-bar collapse,
+  scroll repaints) could re-measure intrinsic width and cause rows to wrap
+  differently — width shrinks, height grows, repeat, visible as toolbar
+  jitter on iOS. The toolbar is now `width: min(360px, calc(100vw - 24px))`
+  and split into discrete `nowrap` rows: an action row (label + 💬 cancel
+  confirm pinned right via a flex spacer), a format row (image / B I U S /
+  link / align cycles / case cycle), a font row, a color/bg/text-fx/reset
+  row, a border/radius/pad row, and an opacity/box-fx row.
+- **Element label in the toolbar.** Where the toolbar used to read a flat
+  "editing text" or "editing image," it now reads the element's short
+  identity — `tag#id`, `tag.class1.class2`, or just `tag` — via a new
+  `elementShortLabel()` helper, so it's obvious which node a long edit
+  session is bound to.
+- **"◈ changed" badge on `cf-change-active` elements** so the user can see at
+  a glance which element the most recent batch touched.
+- **iOS Safari `object-view-box` fallback.** WebKit still ignores
+  `object-view-box`, so the image-crop pipeline now also emits `--cf-zoom`,
+  `--cf-pan-tx`, and `--cf-pan-ty` CSS custom properties alongside the
+  view-box inset. A page-level `@supports not (object-view-box: inset(0))`
+  rule can emulate the crop with `transform: scale(var(--cf-zoom))
+  translate(var(--cf-pan-tx), var(--cf-pan-ty))` against an
+  `overflow:hidden` ancestor. Sign convention matches the view-box pan, and
+  zoom-out to 1× now clears the vars alongside the view-box and the
+  `data-cf-zoom/panX/panY` dataset.
+- **`L` keyboard shortcut → copy page HTML.** Added to the shortcut help
+  card and wired through `copyPageHtml()`.
+- **`scripts/check_unprocessed.py`.** New single-command startup check that
+  reports inbox comments not referenced by any history batch — and reads
+  **both** `feedback/history.json` and the archived
+  `feedback/_archive/history-archive.jsonl` in one pass. Replaces the
+  manual two-file scan that used to mis-flag already-handled comments as
+  unprocessed after a `trim_inbox.py` run. Exit code 0 = clean, 1 =
+  unprocessed; `--ids` / `--json` for programmatic use.
 - **Brand fonts in the curated font picker.** The inline text editor's
   font-family dropdown now offers Alegreya Sans SC, Cormorant Garamond,
   Fraunces, Inter, Josefin Sans, Lato, Lora, Marcellus, Montserrat, Poppins,
@@ -35,8 +70,48 @@ this project uses [semantic versioning](https://semver.org/).
   round-trips through save/reload. The `pos:` button keeps its keyword
   cycler — clicking it resets the pan and snaps to the picked keyword.
 
+### Changed
+
+- **Mobile `@media` agent rule covers dimensional pins, not just position.**
+  SKILL.md's "mobile-viewport edits → mobile @media" rule used to apply
+  only to position/crop properties (`object-position`, `transform`,
+  `--cf-zoom`, etc.). It now also covers `width`, `height`,
+  `min/max-width`, `min/max-height`, all four `margin-*` (plus the
+  shorthand), and `flex-shrink / flex-grow / flex-basis`. Per the
+  2026-06-18 confirmation on the Andromeda card — those dims differ per
+  breakpoint just like image crops do, so inline `!important` would bleed
+  mobile-tuned values into desktop. Also re-stated the critical
+  cascade rule: inline shape-only declarations must be written WITHOUT
+  `!important`, or a stylesheet `@media` override can never win.
+- **Editor scripts directory listing in SKILL.md** updated to include
+  `append_history.py`, `trim_inbox.py`, `trim_snapshots.py`, and
+  `check_unprocessed.py`.
+
 ### Fixed
 
+- **Toolbar / handle jitter on mobile scroll.** The `window scroll` listener
+  used to call `positionEditToolbar()` + `positionResizeHandle()` (and the
+  bg-toolbar positioner) synchronously on every tick, which on iOS meant
+  address-bar collapse and arrow-key caret scrolls fired the
+  measure-and-clamp loop dozens of times per gesture. Now throttled through
+  a single shared `requestAnimationFrame` token so each frame does at most
+  one reposition pass.
+- **`cf-bg-editing-target` left behind on session reset.** It was missing
+  from `SESSION_CLASSES`, so the orange bg-edit outline could persist on
+  the page after `resetSessionState()`. Added.
+- **Startup unprocessed-comment scan missed archived history.** The skill
+  used to instruct the agent to scan `inbox.jsonl` against
+  `history.json` only; after a `trim_inbox.py` run, batches older than the
+  live window were in `feedback/_archive/history-archive.jsonl` and the
+  scan would surface already-handled comments. SKILL.md now points at the
+  new `check_unprocessed.py` (covers live + archive in one pass).
+- **Monitor replayed processed comments on session resume.** The Monitor
+  setup snippet used `Monitor on path: inbox.jsonl`, which fired on the
+  last 10 existing lines on attach — every resumed session opened with a
+  notification blast of already-processed comments. Switched to
+  `tail -n 0 -F` so the watch starts at EOF and only fires for genuinely
+  new submissions. Truncation-rewinds (from trims) are documented as
+  expected, with `check_unprocessed.py` as the post-trim ground truth.
 - **Bg-edit position cycler no-op on shorthand-styled elements.** When an
   element had an inline `style="background: ..."` shorthand (common pattern:
   `linear-gradient(...), url(...) center 70% / cover`), clicking the bg
