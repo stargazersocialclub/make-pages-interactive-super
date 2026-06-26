@@ -1414,6 +1414,35 @@ body.cf-paintbrush-mode #cf-edit-paintbrush {
 }
 
 /* Resize handle — pinned to bottom-right of the currently-editing element */
+/* Drag-to-move handle — centered on the editing element */
+#cf-drag-handle {
+  position: fixed;
+  display: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E6CB85, #C7A24E);
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  color: #3a2a0a;
+  font-size: 20px;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  transition: transform 0.15s ease;
+}
+#cf-drag-handle.cf-visible { display: flex; }
+#cf-drag-handle:hover { transform: scale(1.15); }
+#cf-drag-handle:active { cursor: grabbing; }
+/* Dashed outline on the element while in drag-move mode */
+.cf-editing-drag {
+  outline: 2px dashed #C7A24E !important;
+  outline-offset: 3px;
+}
+
 .cf-resize-handle {
   position: fixed;
   display: none;
